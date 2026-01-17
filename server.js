@@ -37,12 +37,18 @@ if (!usingEnvSecret) {
 // OAuth Token Exchange Endpoint
 app.post('/api/tiktok/token', async (req, res) => {
     try {
-        const { code } = req.body;
+        const { code, redirect_uri } = req.body;
 
         console.log('[TOKEN] Received token exchange request');
         console.log('[TOKEN] Code:', code ? code.substring(0, 10) + '...' : 'MISSING');
         console.log('[TOKEN] Client Key:', TIKTOK_CLIENT_KEY);
-        console.log('[TOKEN] Redirect URI:', REDIRECT_URI);
+        console.log('[TOKEN] Redirect URI from request:', redirect_uri || 'NOT PROVIDED');
+        console.log('[TOKEN] Redirect URI from env var:', REDIRECT_URI);
+        
+        // Use redirect_uri from request if provided, otherwise use env var
+        // This ensures we use the exact same redirect_uri that was used in authorization
+        const finalRedirectUri = redirect_uri || REDIRECT_URI;
+        console.log('[TOKEN] Using redirect URI:', finalRedirectUri);
 
         if (!code) {
             console.error('[TOKEN] No authorization code provided');
@@ -58,7 +64,7 @@ app.post('/api/tiktok/token', async (req, res) => {
         console.log('[TOKEN] Client Secret length:', TIKTOK_CLIENT_SECRET?.length || 0);
         console.log('[TOKEN] Client Secret first 4 chars:', TIKTOK_CLIENT_SECRET?.substring(0, 4) || 'NONE');
         console.log('[TOKEN] Client Secret last 4 chars:', TIKTOK_CLIENT_SECRET?.substring(TIKTOK_CLIENT_SECRET.length - 4) || 'NONE');
-        console.log('[TOKEN] Redirect URI:', REDIRECT_URI);
+        console.log('[TOKEN] Redirect URI:', finalRedirectUri);
         console.log('[TOKEN] Code length:', code?.length || 0);
         console.log('[TOKEN] ========================');
         
@@ -67,7 +73,7 @@ app.post('/api/tiktok/token', async (req, res) => {
             client_secret: TIKTOK_CLIENT_SECRET,
             code: code,
             grant_type: 'authorization_code',
-            redirect_uri: REDIRECT_URI
+            redirect_uri: finalRedirectUri
         });
 
         console.log('[TOKEN] Requesting token from TikTok:', tokenUrl);
@@ -75,7 +81,7 @@ app.post('/api/tiktok/token', async (req, res) => {
             client_key: TIKTOK_CLIENT_KEY,
             code: code.substring(0, 10) + '...',
             grant_type: 'authorization_code',
-            redirect_uri: REDIRECT_URI,
+            redirect_uri: finalRedirectUri,
             client_secret_length: TIKTOK_CLIENT_SECRET?.length || 0
         });
 

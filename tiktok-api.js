@@ -9,18 +9,26 @@ class TikTokAPI {
 
     // Generate OAuth authorization URL
     getAuthUrl() {
+        const redirectUri = this.config.redirect_uri;
+        console.log('🔗 Generating auth URL with redirect_uri:', redirectUri);
+        
         const params = new URLSearchParams({
             client_key: this.config.client_key,
             scope: this.config.scopes,
             response_type: 'code',
-            redirect_uri: this.config.redirect_uri,
+            redirect_uri: redirectUri,
             state: this.generateState()
         });
+        
+        // Store redirect_uri for later verification
+        sessionStorage.setItem('tiktok_redirect_uri', redirectUri);
         
         // For sandbox apps, TikTok may require additional parameters
         // Note: Sandbox apps only work with test users added in TikTok Developer Portal
         
-        return `${this.config.auth_url}?${params.toString()}`;
+        const authUrl = `${this.config.auth_url}?${params.toString()}`;
+        console.log('🔗 Full auth URL:', authUrl);
+        return authUrl;
     }
 
     // Generate random state for OAuth security
@@ -35,7 +43,11 @@ class TikTokAPI {
         const backendUrl = this.getBackendUrl();
         const url = `${backendUrl}/api/tiktok/token`;
         
+        // Get the redirect_uri that was used in authorization
+        const redirectUri = sessionStorage.getItem('tiktok_redirect_uri') || this.config.redirect_uri;
         console.log('🔄 Exchanging code for token at:', url);
+        console.log('🔄 Redirect URI from authorization:', redirectUri);
+        console.log('🔄 Redirect URI from config:', this.config.redirect_uri);
         
         try {
             // Create abort controller for timeout
@@ -47,7 +59,10 @@ class TikTokAPI {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ code }),
+                body: JSON.stringify({ 
+                    code,
+                    redirect_uri: redirectUri // Send the redirect_uri used in authorization
+                }),
                 signal: controller.signal
             }).catch(err => {
                 clearTimeout(timeoutId);
