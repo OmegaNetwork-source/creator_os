@@ -433,12 +433,15 @@ function initTikTokIntegration() {
         console.log('✅ Refresh button event listener added');
     }
 
-    // Load data if authenticated
+    // Load trending data (works without auth)
+    loadTrendingData();
+    
+    // Load user-specific data if authenticated
     if (tiktokAPI && tiktokAPI.isAuthenticated()) {
-        console.log('✅ User authenticated, loading data...');
+        console.log('✅ User authenticated, loading user data...');
         loadTikTokData();
     } else {
-        console.log('ℹ️ User not authenticated, skipping data load');
+        console.log('ℹ️ User not authenticated, skipping user data load');
     }
 }
 
@@ -556,18 +559,8 @@ async function loadTikTokData() {
             alert('Could not load videos: ' + e.message);
         }
 
-        // Load trending data
-        try {
-            console.log('Fetching trending data...');
-            const trending = await tiktokAPI.getTrendingHashtags();
-            console.log('Trending data received:', trending);
-            
-            if (trending.data?.hashtags) {
-                updateTrendingList(trending.data.hashtags);
-            }
-        } catch (e) {
-            console.log('Could not load trending:', e);
-        }
+        // Load trending data (also updates when authenticated for personalized trends)
+        loadTrendingData();
 
     } catch (error) {
         console.error('Error loading TikTok data:', error);
@@ -640,12 +633,68 @@ function updateBestPerforming(videos) {
     });
 }
 
+// Load trending data (works without authentication)
+async function loadTrendingData() {
+    if (!tiktokAPI) {
+        console.log('TikTok API not initialized, using default trending data');
+        return;
+    }
+
+    try {
+        console.log('📈 Fetching trending data...');
+        const trending = await tiktokAPI.getTrendingHashtags();
+        console.log('📈 Trending data received:', trending);
+        
+        if (trending.data?.hashtags) {
+            updateTrendingList(trending.data.hashtags);
+        }
+    } catch (e) {
+        console.log('Could not load trending:', e);
+    }
+}
+
 function updateTrendingList(hashtags) {
     const trendingList = document.getElementById('trending-list');
     if (!trendingList || !hashtags) return;
 
-    // Keep existing structure but update with real data if available
-    // This would be enhanced with real TikTok API data
+    trendingList.innerHTML = '';
+    
+    hashtags.slice(0, 3).forEach((hashtag, index) => {
+        const trendItem = document.createElement('div');
+        trendItem.className = 'trend-item';
+        if (index === 0) trendItem.classList.add('rising');
+        
+        const badgeClass = index === 0 ? 'rising' : 'hot';
+        const badgeText = index === 0 ? 'Rising' : 'Hot';
+        
+        trendItem.innerHTML = `
+            <span class="trend-badge ${badgeClass}">${badgeText}</span>
+            <span class="trend-number">#${index + 1}</span>
+            <div class="trend-content">
+                <h3>${hashtag.name || hashtag}</h3>
+                <p class="trend-meta">${hashtag.engagement || 'Trending now'} ${hashtag.videos ? '• ' + hashtag.videos + ' videos' : ''}</p>
+                ${hashtag.tags ? `<div class="trend-tags">${hashtag.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
+            </div>
+            <button class="btn-save-trend">Save for Later</button>
+        `;
+        
+        // Re-attach save button handler
+        const saveBtn = trendItem.querySelector('.btn-save-trend');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                const trendTitle = trendItem.querySelector('h3').textContent;
+                savedTrends.push({
+                    title: trendTitle,
+                    savedAt: new Date().toISOString()
+                });
+                localStorage.setItem('creator_os_trends', JSON.stringify(savedTrends));
+                this.textContent = 'Saved!';
+                this.disabled = true;
+            });
+        }
+        
+        trendingList.appendChild(trendItem);
+    });
 }
 
 function formatNumber(num) {
