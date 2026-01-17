@@ -170,7 +170,10 @@ body {
     width: auto;
     object-fit: contain;
     margin-bottom: 2rem;
-    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
+    filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.6))
+            drop-shadow(0 0 40px rgba(102, 126, 234, 0.4))
+            drop-shadow(0 0 60px rgba(118, 75, 162, 0.3))
+            drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
     animation: fadeInUp 0.8s ease-out;
     background: transparent !important;
     border: none !important;

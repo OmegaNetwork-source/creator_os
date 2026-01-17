@@ -8,6 +8,7 @@ const TIKTOK_CONFIG = {
     // NOTE: client_secret is now handled by backend server only!
     
     // TikTok API endpoints
+    // For sandbox apps, use the same endpoints but ensure proper configuration
     auth_url: 'https://www.tiktok.com/v2/auth/authorize/',
     api_base: 'https://open.tiktokapis.com/v2/',
     

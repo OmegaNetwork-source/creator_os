@@ -17,6 +17,9 @@ class TikTokAPI {
             state: this.generateState()
         });
         
+        // For sandbox apps, TikTok may require additional parameters
+        // Note: Sandbox apps only work with test users added in TikTok Developer Portal
+        
         return `${this.config.auth_url}?${params.toString()}`;
     }
 
