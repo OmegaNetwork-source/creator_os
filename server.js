@@ -19,6 +19,17 @@ const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY || 'sbawfp2mg0wxqesz9n';
 const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET || 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu';
 const REDIRECT_URI = process.env.REDIRECT_URI || 'https://creatoros.omeganetwork.co/callback.html';
 
+// Log environment variable status (without exposing secrets)
+console.log('🔧 Environment Check:');
+console.log('  TIKTOK_CLIENT_KEY:', TIKTOK_CLIENT_KEY ? TIKTOK_CLIENT_KEY.substring(0, 10) + '...' : 'NOT SET');
+console.log('  TIKTOK_CLIENT_SECRET:', TIKTOK_CLIENT_SECRET ? 'SET (' + TIKTOK_CLIENT_SECRET.length + ' chars)' : 'NOT SET');
+console.log('  REDIRECT_URI:', REDIRECT_URI);
+console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
+
+if (!process.env.TIKTOK_CLIENT_SECRET || process.env.TIKTOK_CLIENT_SECRET === 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu') {
+    console.warn('⚠️  WARNING: Using default client secret. Make sure to set TIKTOK_CLIENT_SECRET in Render environment variables!');
+}
+
 // OAuth Token Exchange Endpoint
 app.post('/api/tiktok/token', async (req, res) => {
     try {
