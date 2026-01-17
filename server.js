@@ -209,7 +209,9 @@ app.post('/api/tiktok/*', async (req, res) => {
         }
 
         const endpoint = req.path.replace('/api/tiktok', '');
-        const url = `https://open.tiktokapis.com/v2${endpoint}`;
+        // Ensure endpoint starts with / for TikTok API
+        const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        const url = `https://open.tiktokapis.com/v2${cleanEndpoint}`;
 
         console.log(`[POST] Proxying to TikTok: ${url}`, { body: req.body });
 
