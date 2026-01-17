@@ -97,9 +97,11 @@ app.post('/api/tiktok/token', async (req, res) => {
             hasAccessToken: !!data.data?.access_token
         });
 
-        if (!response.ok) {
+        // TikTok returns 200 OK even when there's an error in the response body
+        // Check for errors in the response data, not just HTTP status
+        if (data.error || !data.data?.access_token) {
             console.error('[TOKEN] ❌ Token exchange failed');
-            console.error('[TOKEN] Status:', response.status, response.statusText);
+            console.error('[TOKEN] HTTP Status:', response.status, response.statusText);
             console.error('[TOKEN] Error response:', JSON.stringify(data, null, 2));
             
             if (data.error === 'invalid_client') {
@@ -114,6 +116,8 @@ app.post('/api/tiktok/token', async (req, res) => {
                 console.error('[TOKEN]   Client Secret length:', TIKTOK_CLIENT_SECRET?.length || 0);
                 console.error('[TOKEN]   Expected secret length: 32');
                 console.error('[TOKEN]   Secret from env var:', !!process.env.TIKTOK_CLIENT_SECRET);
+                console.error('[TOKEN]   Secret first 4 chars:', TIKTOK_CLIENT_SECRET?.substring(0, 4));
+                console.error('[TOKEN]   Secret last 4 chars:', TIKTOK_CLIENT_SECRET?.substring(TIKTOK_CLIENT_SECRET.length - 4));
                 console.error('[TOKEN]');
                 console.error('[TOKEN] 📋 ACTION REQUIRED:');
                 console.error('[TOKEN]   1. Go to TikTok Developer Portal: https://developers.tiktok.com');
@@ -123,14 +127,14 @@ app.post('/api/tiktok/token', async (req, res) => {
                 console.error('[TOKEN]   5. Redeploy the service');
             }
             
-            return res.status(response.status).json({
+            return res.status(400).json({
                 error: data.error || 'Token exchange failed',
-                error_description: data.error_description || data.error?.message,
+                error_description: data.error_description || data.error?.message || 'No access token in response',
                 ...data
             });
         }
 
-        console.log('[TOKEN] Token exchange successful');
+        console.log('[TOKEN] ✅ Token exchange successful');
         res.json(data);
     } catch (error) {
         console.error('[TOKEN] Token exchange error:', error);
