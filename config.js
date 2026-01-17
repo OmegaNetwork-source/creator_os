@@ -3,17 +3,20 @@
 // This should be handled by a backend server for security
 
 const TIKTOK_CONFIG = {
-    // Sandbox credentials - replace with your actual values
+    // Client key (public, safe to expose)
     client_key: 'sbawfp2mg0wxqesz9n',
-    client_secret: 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu', // Should be server-side only!
+    // NOTE: client_secret is now handled by backend server only!
     
     // TikTok API endpoints
     auth_url: 'https://www.tiktok.com/v2/auth/authorize/',
-    token_url: 'https://open.tiktokapis.com/v2/oauth/token/',
     api_base: 'https://open.tiktokapis.com/v2/',
     
     // Redirect URI (must match your TikTok app settings)
     redirect_uri: 'https://creatoros.omeganetwork.co/callback.html',
+    
+    // Backend API URL (set this to your Render backend URL)
+    // If not set, will use same origin
+    backend_url: window.CREATOR_OS_BACKEND_URL || window.location.origin,
     
     // Scopes for TikTok API
     scopes: [

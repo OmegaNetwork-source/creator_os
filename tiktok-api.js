@@ -28,30 +28,37 @@ class TikTokAPI {
 
     // Exchange authorization code for access token
     async exchangeCodeForToken(code) {
-        // NOTE: This should be done server-side in production!
-        // Client secret should never be exposed in frontend code
+        // Use backend server for token exchange (secure)
+        const backendUrl = this.getBackendUrl();
         
-        const response = await fetch(this.config.token_url, {
+        const response = await fetch(`${backendUrl}/api/tiktok/token`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
             },
-            body: new URLSearchParams({
-                client_key: this.config.client_key,
-                client_secret: this.config.client_secret,
-                code: code,
-                grant_type: 'authorization_code',
-                redirect_uri: this.config.redirect_uri
-            })
+            body: JSON.stringify({ code })
         });
 
         if (!response.ok) {
-            throw new Error('Failed to exchange code for token');
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error?.message || 'Failed to exchange code for token');
         }
 
         const data = await response.json();
         this.setTokens(data);
         return data;
+    }
+
+    // Get backend URL (use same domain or environment variable)
+    getBackendUrl() {
+        // In production, this should be your backend server URL
+        // For now, try to use same origin, fallback to environment variable
+        if (typeof window !== 'undefined') {
+            // Check if we have a backend URL configured
+            const backendUrl = window.CREATOR_OS_BACKEND_URL || window.location.origin;
+            return backendUrl;
+        }
+        return '';
     }
 
     // Store tokens
@@ -85,13 +92,15 @@ class TikTokAPI {
         localStorage.removeItem(STORAGE_KEYS.user_info);
     }
 
-    // Make authenticated API request
+    // Make authenticated API request (through backend proxy)
     async apiRequest(endpoint, options = {}) {
         if (!this.accessToken) {
             throw new Error('Not authenticated. Please login first.');
         }
 
-        const url = `${this.config.api_base}${endpoint}`;
+        const backendUrl = this.getBackendUrl();
+        const url = `${backendUrl}/api/tiktok${endpoint}`;
+        
         const defaultOptions = {
             headers: {
                 'Authorization': `Bearer ${this.accessToken}`,
@@ -102,10 +111,12 @@ class TikTokAPI {
         const response = await fetch(url, {
             ...defaultOptions,
             ...options,
+            method: options.method || 'POST',
             headers: {
                 ...defaultOptions.headers,
                 ...options.headers
-            }
+            },
+            body: options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined
         });
 
         if (response.status === 401) {
@@ -122,28 +133,25 @@ class TikTokAPI {
         return response.json();
     }
 
-    // Refresh access token
+    // Refresh access token (through backend)
     async refreshAccessToken() {
         if (!this.refreshToken) {
             throw new Error('No refresh token available');
         }
 
-        const response = await fetch(this.config.token_url, {
+        const backendUrl = this.getBackendUrl();
+        const response = await fetch(`${backendUrl}/api/tiktok/refresh`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
             },
-            body: new URLSearchParams({
-                client_key: this.config.client_key,
-                client_secret: this.config.client_secret,
-                grant_type: 'refresh_token',
-                refresh_token: this.refreshToken
-            })
+            body: JSON.stringify({ refresh_token: this.refreshToken })
         });
 
         if (!response.ok) {
             this.logout();
-            throw new Error('Failed to refresh token');
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error?.message || 'Failed to refresh token');
         }
 
         const data = await response.json();
