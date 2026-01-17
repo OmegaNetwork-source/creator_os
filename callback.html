@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connecting to TikTok - Creator OS</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .callback-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">Creator OS</div>
+            <div class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="/terms.html">Terms</a>
+                <a href="/privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="callback-container">
+            <h1>Connecting to TikTok...</h1>
+            <div class="spinner"></div>
+            <p id="status">Processing authentication...</p>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="tiktok-api.js"></script>
+    <script>
+        (async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            const statusEl = document.getElementById('status');
+
+            if (error) {
+                statusEl.textContent = `Error: ${error}`;
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+                return;
+            }
+
+            if (code) {
+                try {
+                    statusEl.textContent = 'Exchanging authorization code...';
+                    const api = new TikTokAPI();
+                    await api.exchangeCodeForToken(code);
+                    
+                    statusEl.textContent = 'Success! Redirecting to dashboard...';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } catch (err) {
+                    statusEl.textContent = `Error: ${err.message}`;
+                    console.error('Token exchange error:', err);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 3000);
+                }
+            } else {
+                statusEl.textContent = 'No authorization code received. Redirecting...';
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            }
+        })();
+    </script>
+</body>
+</html>
