@@ -26,8 +26,12 @@ console.log('  TIKTOK_CLIENT_SECRET:', TIKTOK_CLIENT_SECRET ? 'SET (' + TIKTOK_C
 console.log('  REDIRECT_URI:', REDIRECT_URI);
 console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
 
-if (!process.env.TIKTOK_CLIENT_SECRET || process.env.TIKTOK_CLIENT_SECRET === 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu') {
+// Check if using environment variable (not fallback)
+const usingEnvSecret = !!process.env.TIKTOK_CLIENT_SECRET;
+if (!usingEnvSecret) {
     console.warn('⚠️  WARNING: Using default client secret. Make sure to set TIKTOK_CLIENT_SECRET in Render environment variables!');
+} else {
+    console.log('  ✅ Using environment variable for client secret (not fallback)');
 }
 
 // OAuth Token Exchange Endpoint
