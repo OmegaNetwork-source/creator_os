@@ -21,19 +21,29 @@ The error `non_sandbox_target` occurs because **sandbox apps can ONLY be used by
 - Regular TikTok accounts will get the `non_sandbox_target` error
 - You must use the exact TikTok accounts you added as test users
 
-### Step 3: Verify App Settings
+### Step 3: Enable Products in TikTok Developer Portal
+
+**CRITICAL**: You must enable the products (scopes) in your app settings:
+
+1. Go to your app in TikTok Developer Portal
+2. Click on **"Products"** tab
+3. Enable these products:
+   - ✅ **Login Kit** (provides `user.info.basic` scope)
+   - ✅ **TikTok Video Kit** (provides `video.list` scope)
+4. Save the changes
+
+**Note**: Some products like `video.upload`, `video.publish`, and `video.insights` may not be available in sandbox mode or require additional approval.
+
+### Step 4: Verify App Settings
 
 In your TikTok Developer Portal, make sure:
 
 1. **App Status**: Shows "Sandbox" (not Production)
 2. **Redirect URI**: Exactly matches `https://creatoros.omeganetwork.co/callback.html`
 3. **Test Users**: At least one test user is added
-4. **Scopes**: Match what's in your `config.js`:
-   - `user.info.basic`
-   - `video.list`
-   - `video.upload`
-   - `video.publish`
-   - `video.insights`
+4. **Products Enabled**: 
+   - Login Kit (for user info)
+   - TikTok Video Kit (for video list)
 
 ### Step 4: Test with Test User Account
 
@@ -58,6 +68,14 @@ To use with any TikTok user (not just test users):
 - **Redirect URI**: `https://creatoros.omeganetwork.co/callback.html`
 
 ## Troubleshooting
+
+### Error: "scope"
+- **Cause**: Requesting scopes that aren't enabled in your app's Products
+- **Fix**: 
+  1. Go to TikTok Developer Portal → Your App → Products
+  2. Enable "Login Kit" and "TikTok Video Kit"
+  3. Make sure the scopes in `config.js` match what's enabled
+  4. Currently using: `user.info.basic,video.list`
 
 ### Error: "non_sandbox_target"
 - **Cause**: Trying to authenticate with a non-test user account

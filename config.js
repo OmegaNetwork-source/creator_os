@@ -20,12 +20,11 @@ const TIKTOK_CONFIG = {
     backend_url: window.CREATOR_OS_BACKEND_URL || window.location.origin,
     
     // Scopes for TikTok API
+    // For sandbox apps, only basic scopes are available
+    // Update these in TikTok Developer Portal → Your App → Products → Enable the products you need
     scopes: [
         'user.info.basic',
-        'video.list',
-        'video.upload',
-        'video.publish',
-        'video.insights'
+        'video.list'
     ].join(',')
 };
 
