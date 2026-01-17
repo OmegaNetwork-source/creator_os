@@ -199,10 +199,14 @@ class TikTokAPI {
 
         const backendUrl = this.getBackendUrl();
         // Ensure endpoint starts with / and doesn't have double slashes
-        const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        // Remove any double slashes
-        const normalizedEndpoint = cleanEndpoint.replace(/\/+/g, '/');
-        const url = `${backendUrl}/api/tiktok${normalizedEndpoint}`;
+        // Remove leading slash if present, we'll add it properly
+        let cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+        // Ensure it ends with / if it's a path (not a query string)
+        if (cleanEndpoint && !cleanEndpoint.includes('?') && !cleanEndpoint.endsWith('/')) {
+            cleanEndpoint = cleanEndpoint + '/';
+        }
+        // Construct URL: backend/api/tiktok/endpoint
+        const url = `${backendUrl}/api/tiktok/${cleanEndpoint}`;
         
         const defaultOptions = {
             headers: {
@@ -295,7 +299,7 @@ class TikTokAPI {
 
         // TikTok Display API: GET /v2/user/info/ with fields as query params
         const fields = ['open_id', 'union_id', 'avatar_url', 'display_name', 'username'].join(',');
-        const data = await this.apiRequest(`/user/info/?fields=${fields}`, {
+        const data = await this.apiRequest(`user/info/?fields=${fields}`, {
             method: 'GET'
         });
 
