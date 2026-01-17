@@ -28,7 +28,72 @@ body {
     flex-direction: column;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    overflow-x: hidden;
 }
+
+/* TikTok Rain Animation */
+.tiktok-rain-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.tiktok-rain-left,
+.tiktok-rain-right {
+    position: absolute;
+    top: -100px;
+    width: 50%;
+    height: 100%;
+}
+
+.tiktok-rain-left {
+    left: 0;
+}
+
+.tiktok-rain-right {
+    right: 0;
+}
+
+.tiktok-symbol {
+    position: absolute;
+    font-size: 24px;
+    color: var(--black);
+    opacity: 0.15;
+    animation: rain-fall linear infinite;
+    user-select: none;
+}
+
+.tiktok-symbol::before {
+    content: '♪';
+    display: block;
+    transform: rotate(-15deg);
+}
+
+@keyframes rain-fall {
+    0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.15;
+    }
+    90% {
+        opacity: 0.15;
+    }
+    100% {
+        transform: translateY(calc(100vh + 100px)) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Different animation speeds for variety */
+/* Animation speeds are handled by JavaScript for variety */
 
 /* Navigation */
 .navbar {
@@ -40,6 +105,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
+    position: relative;
 }
 
 .nav-container {
@@ -86,6 +152,8 @@ body {
     margin: 0 auto;
     padding: 3rem 2rem;
     flex: 1;
+    position: relative;
+    z-index: 10;
 }
 
 /* Hero Section */

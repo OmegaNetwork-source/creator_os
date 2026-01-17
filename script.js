@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Creator OS - Initializing...');
     console.log('Backend URL:', window.CREATOR_OS_BACKEND_URL);
     
+    // Initialize TikTok rain animation
+    initTikTokRain();
+    
     try {
         // Initialize TikTok API
         if (typeof TikTokAPI !== 'undefined') {
@@ -41,6 +44,36 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('❌ Initialization error:', e);
     }
 });
+
+// ==================== TikTok Rain Animation ====================
+function initTikTokRain() {
+    const leftContainer = document.querySelector('.tiktok-rain-left');
+    const rightContainer = document.querySelector('.tiktok-rain-right');
+    
+    if (!leftContainer || !rightContainer) return;
+    
+    // Create symbols for left side
+    for (let i = 0; i < 15; i++) {
+        const symbol = document.createElement('div');
+        symbol.className = 'tiktok-symbol';
+        symbol.style.left = `${Math.random() * 100}%`;
+        symbol.style.animationDelay = `${Math.random() * 3}s`;
+        symbol.style.animationDuration = `${8 + Math.random() * 6}s`;
+        symbol.style.fontSize = `${20 + Math.random() * 16}px`;
+        leftContainer.appendChild(symbol);
+    }
+    
+    // Create symbols for right side
+    for (let i = 0; i < 15; i++) {
+        const symbol = document.createElement('div');
+        symbol.className = 'tiktok-symbol';
+        symbol.style.left = `${Math.random() * 100}%`;
+        symbol.style.animationDelay = `${Math.random() * 3}s`;
+        symbol.style.animationDuration = `${8 + Math.random() * 6}s`;
+        symbol.style.fontSize = `${20 + Math.random() * 16}px`;
+        rightContainer.appendChild(symbol);
+    }
+}
 
 // ==================== Tab Navigation ====================
 function initTabNavigation() {
