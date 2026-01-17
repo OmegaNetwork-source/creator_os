@@ -484,6 +484,12 @@ function checkAuthStatus() {
         return;
     }
 
+    // Check localStorage directly for debugging
+    const storedToken = localStorage.getItem('tiktok_access_token');
+    console.log('🔍 Checking auth status...');
+    console.log('Stored token in localStorage:', storedToken ? storedToken.substring(0, 20) + '...' : 'NONE');
+    console.log('TikTokAPI accessToken:', tiktokAPI.accessToken ? tiktokAPI.accessToken.substring(0, 20) + '...' : 'NONE');
+
     const isAuth = tiktokAPI.isAuthenticated();
     console.log('Auth status:', isAuth ? '✅ Authenticated' : '❌ Not authenticated');
     
@@ -498,6 +504,9 @@ function checkAuthStatus() {
         if (logoutBtn) logoutBtn.style.display = 'inline-block';
         if (userInfo) userInfo.style.display = 'block';
         console.log('✅ User is authenticated, showing logout button');
+        
+        // Load data immediately
+        loadTikTokData();
     } else {
         if (loginBtn) {
             loginBtn.style.display = 'inline-block';
@@ -511,6 +520,18 @@ function checkAuthStatus() {
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'none';
         console.log('❌ User not authenticated, showing login button');
+        
+        // If we have a token but API says not authenticated, there's a mismatch
+        if (storedToken && !tiktokAPI.accessToken) {
+            console.warn('⚠️ Token exists in localStorage but not in API instance. Re-initializing...');
+            tiktokAPI.accessToken = storedToken;
+            tiktokAPI.refreshToken = localStorage.getItem('tiktok_refresh_token');
+            // Re-check
+            if (tiktokAPI.isAuthenticated()) {
+                console.log('✅ Fixed! User is now authenticated');
+                checkAuthStatus(); // Recursive call to update UI
+            }
+        }
     }
 }
 

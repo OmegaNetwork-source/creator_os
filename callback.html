@@ -76,6 +76,14 @@
                     const api = new TikTokAPI();
                     const result = await api.exchangeCodeForToken(code);
                     console.log('Token exchange successful:', result);
+                    console.log('Stored access token:', localStorage.getItem('tiktok_access_token') ? 'YES' : 'NO');
+                    console.log('Stored refresh token:', localStorage.getItem('tiktok_refresh_token') ? 'YES' : 'NO');
+                    
+                    // Verify token was stored
+                    const storedToken = localStorage.getItem('tiktok_access_token');
+                    if (!storedToken) {
+                        throw new Error('Token was not stored properly. Check console for details.');
+                    }
                     
                     statusEl.textContent = 'Success! Redirecting to dashboard...';
                     setTimeout(() => {
