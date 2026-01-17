@@ -198,15 +198,16 @@ class TikTokAPI {
         }
 
         const backendUrl = this.getBackendUrl();
-        // Ensure endpoint starts with / and doesn't have double slashes
-        // Remove leading slash if present, we'll add it properly
+        // Remove leading slash from endpoint if present
         let cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
-        // Ensure it ends with / if it's a path (not a query string)
-        if (cleanEndpoint && !cleanEndpoint.includes('?') && !cleanEndpoint.endsWith('/')) {
-            cleanEndpoint = cleanEndpoint + '/';
-        }
-        // Construct URL: backend/api/tiktok/endpoint
+        // Construct URL: backend/api/tiktok/endpoint (always ensure / between tiktok and endpoint)
         const url = `${backendUrl}/api/tiktok/${cleanEndpoint}`;
+        
+        console.log('🔗 API Request URL construction:', {
+            originalEndpoint: endpoint,
+            cleanEndpoint: cleanEndpoint,
+            finalUrl: url
+        });
         
         const defaultOptions = {
             headers: {
