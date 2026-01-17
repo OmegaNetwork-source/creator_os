@@ -132,20 +132,22 @@ class TikTokAPI {
 
     // Store tokens
     setTokens(tokenData) {
+        // TikTok API returns tokens at top level: { access_token, refresh_token, ... }
+        // OR nested: { data: { access_token, refresh_token, ... } }
+        const accessToken = tokenData.access_token || tokenData.data?.access_token;
+        const refreshToken = tokenData.refresh_token || tokenData.data?.refresh_token;
+        
         console.log('💾 Storing tokens:', { 
             hasData: !!tokenData.data,
-            hasAccessToken: !!(tokenData.data?.access_token || tokenData.access_token),
-            hasRefreshToken: !!(tokenData.data?.refresh_token || tokenData.refresh_token)
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            tokenLocation: tokenData.access_token ? 'top-level' : (tokenData.data?.access_token ? 'nested' : 'none')
         });
-        
-        // TikTok API returns tokens in data.data structure
-        const accessToken = tokenData.data?.access_token || tokenData.access_token;
-        const refreshToken = tokenData.data?.refresh_token || tokenData.refresh_token;
         
         if (accessToken) {
             this.accessToken = accessToken;
             localStorage.setItem(STORAGE_KEYS.access_token, accessToken);
-            console.log('✅ Access token stored');
+            console.log('✅ Access token stored:', accessToken.substring(0, 20) + '...');
         } else {
             console.error('❌ No access token in response:', tokenData);
         }
@@ -153,7 +155,7 @@ class TikTokAPI {
         if (refreshToken) {
             this.refreshToken = refreshToken;
             localStorage.setItem(STORAGE_KEYS.refresh_token, refreshToken);
-            console.log('✅ Refresh token stored');
+            console.log('✅ Refresh token stored:', refreshToken.substring(0, 20) + '...');
         }
     }
 

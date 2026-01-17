@@ -96,16 +96,24 @@ app.post('/api/tiktok/token', async (req, res) => {
         console.log('[TOKEN] TikTok response status:', response.status, response.statusText);
 
         const data = await response.json();
+        
+        // TikTok returns tokens at top level: { access_token, refresh_token, ... }
+        // OR nested: { data: { access_token, refresh_token, ... } }
+        const accessToken = data.access_token || data.data?.access_token;
+        const refreshToken = data.refresh_token || data.data?.refresh_token;
+        
         console.log('[TOKEN] TikTok response data:', {
             hasError: !!data.error,
             error: data.error,
             errorDescription: data.error_description,
-            hasAccessToken: !!data.data?.access_token
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            tokenLocation: data.access_token ? 'top-level' : (data.data?.access_token ? 'nested' : 'none')
         });
 
         // TikTok returns 200 OK even when there's an error in the response body
         // Check for errors in the response data, not just HTTP status
-        if (data.error || !data.data?.access_token) {
+        if (data.error || !accessToken) {
             console.error('[TOKEN] ❌ Token exchange failed');
             console.error('[TOKEN] HTTP Status:', response.status, response.statusText);
             console.error('[TOKEN] Error response:', JSON.stringify(data, null, 2));
@@ -141,6 +149,10 @@ app.post('/api/tiktok/token', async (req, res) => {
         }
 
         console.log('[TOKEN] ✅ Token exchange successful');
+        console.log('[TOKEN] Access token:', accessToken ? accessToken.substring(0, 20) + '...' : 'NONE');
+        console.log('[TOKEN] Refresh token:', refreshToken ? refreshToken.substring(0, 20) + '...' : 'NONE');
+        
+        // Return the response as-is (TikTok format)
         res.json(data);
     } catch (error) {
         console.error('[TOKEN] Token exchange error:', error);
