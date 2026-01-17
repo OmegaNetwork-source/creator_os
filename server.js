@@ -98,7 +98,31 @@ app.post('/api/tiktok/token', async (req, res) => {
         });
 
         if (!response.ok) {
-            console.error('[TOKEN] Token exchange failed:', data);
+            console.error('[TOKEN] ❌ Token exchange failed');
+            console.error('[TOKEN] Status:', response.status, response.statusText);
+            console.error('[TOKEN] Error response:', JSON.stringify(data, null, 2));
+            
+            if (data.error === 'invalid_client') {
+                console.error('[TOKEN] ⚠️  INVALID_CLIENT ERROR - Possible causes:');
+                console.error('[TOKEN]   1. Client secret in Render does not match TikTok Developer Portal');
+                console.error('[TOKEN]   2. Client secret has leading/trailing spaces');
+                console.error('[TOKEN]   3. Client key is incorrect');
+                console.error('[TOKEN]   4. Using wrong app credentials (sandbox vs production)');
+                console.error('[TOKEN]');
+                console.error('[TOKEN] 🔍 DEBUG INFO:');
+                console.error('[TOKEN]   Client Key being used:', TIKTOK_CLIENT_KEY);
+                console.error('[TOKEN]   Client Secret length:', TIKTOK_CLIENT_SECRET?.length || 0);
+                console.error('[TOKEN]   Expected secret length: 32');
+                console.error('[TOKEN]   Secret from env var:', !!process.env.TIKTOK_CLIENT_SECRET);
+                console.error('[TOKEN]');
+                console.error('[TOKEN] 📋 ACTION REQUIRED:');
+                console.error('[TOKEN]   1. Go to TikTok Developer Portal: https://developers.tiktok.com');
+                console.error('[TOKEN]   2. Navigate to your app → Basic Information');
+                console.error('[TOKEN]   3. Copy the EXACT Client Secret (no spaces)');
+                console.error('[TOKEN]   4. Update TIKTOK_CLIENT_SECRET in Render environment variables');
+                console.error('[TOKEN]   5. Redeploy the service');
+            }
+            
             return res.status(response.status).json({
                 error: data.error || 'Token exchange failed',
                 error_description: data.error_description || data.error?.message,
