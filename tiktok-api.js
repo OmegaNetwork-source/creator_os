@@ -56,8 +56,10 @@ class TikTokAPI {
         if (typeof window !== 'undefined') {
             // Check if we have a backend URL configured
             const backendUrl = window.CREATOR_OS_BACKEND_URL || window.location.origin;
+            console.log('🌐 Backend URL:', backendUrl);
             return backendUrl;
         }
+        console.error('❌ Window object not available');
         return '';
     }
 

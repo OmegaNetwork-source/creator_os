@@ -6,18 +6,26 @@ let savedIdeas = JSON.parse(localStorage.getItem('creator_os_ideas') || '[]');
 let savedTrends = JSON.parse(localStorage.getItem('creator_os_trends') || '[]');
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Creator OS - Initializing...');
+    console.log('Backend URL:', window.CREATOR_OS_BACKEND_URL);
+    
     try {
         // Initialize TikTok API
         if (typeof TikTokAPI !== 'undefined') {
+            console.log('✅ TikTokAPI class found, initializing...');
             tiktokAPI = new TikTokAPI();
+            console.log('✅ TikTokAPI initialized');
             checkAuthStatus();
+        } else {
+            console.error('❌ TikTokAPI class not found! Check if tiktok-api.js is loaded.');
         }
     } catch (e) {
-        console.error('TikTok API initialization error:', e);
+        console.error('❌ TikTok API initialization error:', e);
     }
 
     // Initialize all features
     try {
+        console.log('Initializing features...');
         initTabNavigation();
         initTrendDiscovery();
         initContentPlanning();
@@ -28,8 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Load saved data
         loadSavedIdeas();
         loadSavedTrends();
+        console.log('✅ All features initialized');
     } catch (e) {
-        console.error('Initialization error:', e);
+        console.error('❌ Initialization error:', e);
     }
 });
 
@@ -374,59 +383,95 @@ function initEngagementManagement() {
 
 // ==================== TikTok Integration ====================
 function initTikTokIntegration() {
+    console.log('🔧 Initializing TikTok integration...');
+    
     const loginBtn = document.getElementById('tiktok-login-btn');
     const logoutBtn = document.getElementById('tiktok-logout-btn');
     const refreshBtn = document.getElementById('refresh-data-btn');
 
+    console.log('Buttons found:', { loginBtn: !!loginBtn, logoutBtn: !!logoutBtn, refreshBtn: !!refreshBtn });
+
     if (loginBtn) {
         loginBtn.addEventListener('click', handleTikTokLogin);
+        console.log('✅ Login button event listener added');
+    } else {
+        console.error('❌ Login button not found!');
     }
 
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleTikTokLogout);
+        console.log('✅ Logout button event listener added');
     }
 
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
+            console.log('🔄 Refresh button clicked');
             if (tiktokAPI && tiktokAPI.isAuthenticated()) {
                 loadTikTokData();
+            } else {
+                console.log('⚠️ Not authenticated, cannot refresh');
             }
         });
+        console.log('✅ Refresh button event listener added');
     }
 
     // Load data if authenticated
     if (tiktokAPI && tiktokAPI.isAuthenticated()) {
+        console.log('✅ User authenticated, loading data...');
         loadTikTokData();
+    } else {
+        console.log('ℹ️ User not authenticated, skipping data load');
     }
 }
 
 function checkAuthStatus() {
-    if (!tiktokAPI) return;
+    if (!tiktokAPI) {
+        console.log('⚠️ TikTok API not initialized, cannot check auth status');
+        return;
+    }
 
     const isAuth = tiktokAPI.isAuthenticated();
+    console.log('Auth status:', isAuth ? '✅ Authenticated' : '❌ Not authenticated');
+    
     const loginBtn = document.getElementById('tiktok-login-btn');
     const logoutBtn = document.getElementById('tiktok-logout-btn');
     const userInfo = document.getElementById('user-info');
+
+    console.log('Button elements:', { loginBtn: !!loginBtn, logoutBtn: !!logoutBtn, userInfo: !!userInfo });
 
     if (isAuth) {
         if (loginBtn) loginBtn.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'inline-block';
         if (userInfo) userInfo.style.display = 'block';
+        console.log('✅ User is authenticated, showing logout button');
     } else {
-        if (loginBtn) loginBtn.style.display = 'inline-block';
+        if (loginBtn) {
+            loginBtn.style.display = 'inline-block';
+            console.log('✅ Showing Connect TikTok button');
+        }
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'none';
+        console.log('❌ User not authenticated, showing login button');
     }
 }
 
 function handleTikTokLogin() {
+    console.log('🔐 Connect TikTok button clicked');
+    
     if (!tiktokAPI) {
-        alert('TikTok API not initialized');
+        console.error('❌ TikTok API not initialized');
+        alert('TikTok API not initialized. Please refresh the page.');
         return;
     }
 
-    const authUrl = tiktokAPI.getAuthUrl();
-    window.location.href = authUrl;
+    try {
+        const authUrl = tiktokAPI.getAuthUrl();
+        console.log('🔗 Redirecting to TikTok OAuth:', authUrl);
+        window.location.href = authUrl;
+    } catch (e) {
+        console.error('❌ Error getting auth URL:', e);
+        alert('Error connecting to TikTok: ' + e.message);
+    }
 }
 
 function handleTikTokLogout() {
