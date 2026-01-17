@@ -50,6 +50,18 @@ app.post('/api/tiktok/token', async (req, res) => {
         }
 
         const tokenUrl = 'https://open.tiktokapis.com/v2/oauth/token/';
+        
+        // Verify values before sending
+        console.log('[TOKEN] === PRE-FLIGHT CHECK ===');
+        console.log('[TOKEN] Client Key:', TIKTOK_CLIENT_KEY);
+        console.log('[TOKEN] Client Key length:', TIKTOK_CLIENT_KEY?.length || 0);
+        console.log('[TOKEN] Client Secret length:', TIKTOK_CLIENT_SECRET?.length || 0);
+        console.log('[TOKEN] Client Secret first 4 chars:', TIKTOK_CLIENT_SECRET?.substring(0, 4) || 'NONE');
+        console.log('[TOKEN] Client Secret last 4 chars:', TIKTOK_CLIENT_SECRET?.substring(TIKTOK_CLIENT_SECRET.length - 4) || 'NONE');
+        console.log('[TOKEN] Redirect URI:', REDIRECT_URI);
+        console.log('[TOKEN] Code length:', code?.length || 0);
+        console.log('[TOKEN] ========================');
+        
         const requestBody = new URLSearchParams({
             client_key: TIKTOK_CLIENT_KEY,
             client_secret: TIKTOK_CLIENT_SECRET,
@@ -63,7 +75,8 @@ app.post('/api/tiktok/token', async (req, res) => {
             client_key: TIKTOK_CLIENT_KEY,
             code: code.substring(0, 10) + '...',
             grant_type: 'authorization_code',
-            redirect_uri: REDIRECT_URI
+            redirect_uri: REDIRECT_URI,
+            client_secret_length: TIKTOK_CLIENT_SECRET?.length || 0
         });
 
         const response = await fetch(tokenUrl, {
