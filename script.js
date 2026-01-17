@@ -392,10 +392,28 @@ function initTikTokIntegration() {
     console.log('Buttons found:', { loginBtn: !!loginBtn, logoutBtn: !!logoutBtn, refreshBtn: !!refreshBtn });
 
     if (loginBtn) {
+        // Add multiple event listeners to ensure it works
         loginBtn.addEventListener('click', handleTikTokLogin);
+        loginBtn.addEventListener('click', (e) => {
+            console.log('🔘 Button clicked (second listener)');
+        }, true);
+        
+        // Also make it a link-like element for better UX
+        loginBtn.setAttribute('role', 'button');
+        loginBtn.setAttribute('tabindex', '0');
+        loginBtn.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                handleTikTokLogin(e);
+            }
+        });
+        
         console.log('✅ Login button event listener added');
+        console.log('Button element:', loginBtn);
+        console.log('Button text:', loginBtn.textContent);
+        console.log('Button visible:', window.getComputedStyle(loginBtn).display !== 'none');
     } else {
         console.error('❌ Login button not found!');
+        console.error('Available buttons:', document.querySelectorAll('button'));
     }
 
     if (logoutBtn) {
@@ -447,7 +465,12 @@ function checkAuthStatus() {
     } else {
         if (loginBtn) {
             loginBtn.style.display = 'inline-block';
+            loginBtn.style.visibility = 'visible';
+            loginBtn.style.opacity = '1';
             console.log('✅ Showing Connect TikTok button');
+            console.log('Button computed style:', window.getComputedStyle(loginBtn).display);
+        } else {
+            console.error('❌ Login button element not found in DOM!');
         }
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'none';
@@ -455,22 +478,34 @@ function checkAuthStatus() {
     }
 }
 
-function handleTikTokLogin() {
+function handleTikTokLogin(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
     console.log('🔐 Connect TikTok button clicked');
+    console.log('Event:', e);
     
     if (!tiktokAPI) {
         console.error('❌ TikTok API not initialized');
         alert('TikTok API not initialized. Please refresh the page.');
-        return;
+        return false;
     }
 
     try {
         const authUrl = tiktokAPI.getAuthUrl();
         console.log('🔗 Redirecting to TikTok OAuth:', authUrl);
-        window.location.href = authUrl;
+        console.log('Opening in 1 second...');
+        
+        // Small delay to ensure console logs are visible
+        setTimeout(() => {
+            window.location.href = authUrl;
+        }, 100);
+        
+        return false;
     } catch (e) {
         console.error('❌ Error getting auth URL:', e);
         alert('Error connecting to TikTok: ' + e.message);
+        return false;
     }
 }
 
