@@ -24,34 +24,69 @@ app.post('/api/tiktok/token', async (req, res) => {
     try {
         const { code } = req.body;
 
+        console.log('[TOKEN] Received token exchange request');
+        console.log('[TOKEN] Code:', code ? code.substring(0, 10) + '...' : 'MISSING');
+        console.log('[TOKEN] Client Key:', TIKTOK_CLIENT_KEY);
+        console.log('[TOKEN] Redirect URI:', REDIRECT_URI);
+
         if (!code) {
+            console.error('[TOKEN] No authorization code provided');
             return res.status(400).json({ error: 'Authorization code is required' });
         }
 
-        const response = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
+        const tokenUrl = 'https://open.tiktokapis.com/v2/oauth/token/';
+        const requestBody = new URLSearchParams({
+            client_key: TIKTOK_CLIENT_KEY,
+            client_secret: TIKTOK_CLIENT_SECRET,
+            code: code,
+            grant_type: 'authorization_code',
+            redirect_uri: REDIRECT_URI
+        });
+
+        console.log('[TOKEN] Requesting token from TikTok:', tokenUrl);
+        console.log('[TOKEN] Request body (without secret):', {
+            client_key: TIKTOK_CLIENT_KEY,
+            code: code.substring(0, 10) + '...',
+            grant_type: 'authorization_code',
+            redirect_uri: REDIRECT_URI
+        });
+
+        const response = await fetch(tokenUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: new URLSearchParams({
-                client_key: TIKTOK_CLIENT_KEY,
-                client_secret: TIKTOK_CLIENT_SECRET,
-                code: code,
-                grant_type: 'authorization_code',
-                redirect_uri: REDIRECT_URI
-            })
+            body: requestBody
         });
 
+        console.log('[TOKEN] TikTok response status:', response.status, response.statusText);
+
         const data = await response.json();
+        console.log('[TOKEN] TikTok response data:', {
+            hasError: !!data.error,
+            error: data.error,
+            errorDescription: data.error_description,
+            hasAccessToken: !!data.data?.access_token
+        });
 
         if (!response.ok) {
-            return res.status(response.status).json(data);
+            console.error('[TOKEN] Token exchange failed:', data);
+            return res.status(response.status).json({
+                error: data.error || 'Token exchange failed',
+                error_description: data.error_description || data.error?.message,
+                ...data
+            });
         }
 
+        console.log('[TOKEN] Token exchange successful');
         res.json(data);
     } catch (error) {
-        console.error('Token exchange error:', error);
-        res.status(500).json({ error: 'Failed to exchange token' });
+        console.error('[TOKEN] Token exchange error:', error);
+        res.status(500).json({ 
+            error: 'Failed to exchange token',
+            error_description: error.message,
+            details: error.toString()
+        });
     }
 });
 

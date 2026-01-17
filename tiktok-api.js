@@ -33,8 +33,11 @@ class TikTokAPI {
     async exchangeCodeForToken(code) {
         // Use backend server for token exchange (secure)
         const backendUrl = this.getBackendUrl();
+        const url = `${backendUrl}/api/tiktok/token`;
         
-        const response = await fetch(`${backendUrl}/api/tiktok/token`, {
+        console.log('🔄 Exchanging code for token at:', url);
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -42,12 +45,21 @@ class TikTokAPI {
             body: JSON.stringify({ code })
         });
 
+        console.log('📡 Token exchange response status:', response.status, response.statusText);
+
+        const data = await response.json().catch(async (e) => {
+            const text = await response.text();
+            console.error('❌ Failed to parse response:', text);
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        });
+
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.error?.message || 'Failed to exchange code for token');
+            console.error('❌ Token exchange failed:', data);
+            const errorMsg = data.error?.message || data.error_description || data.error || JSON.stringify(data);
+            throw new Error(errorMsg);
         }
 
-        const data = await response.json();
+        console.log('✅ Token exchange successful');
         this.setTokens(data);
         return data;
     }

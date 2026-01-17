@@ -32,14 +32,8 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <div class="logo-container">
-                <img src="creator_os.png" alt="Creator OS" class="logo-img">
-                <span class="logo-text">Creator OS</span>
-            </div>
             <div class="nav-links">
-                <a href="/">Dashboard</a>
-                <a href="/terms.html">Terms</a>
-                <a href="/privacy.html">Privacy</a>
+                <a href="/">Back to Dashboard</a>
             </div>
         </div>
     </nav>
@@ -52,6 +46,10 @@
         </div>
     </main>
 
+    <script>
+        // Set backend URL for callback page
+        window.CREATOR_OS_BACKEND_URL = 'https://creator-os-h4vg.onrender.com';
+    </script>
     <script src="config.js"></script>
     <script src="tiktok-api.js"></script>
     <script>
@@ -72,19 +70,31 @@
             if (code) {
                 try {
                     statusEl.textContent = 'Exchanging authorization code...';
+                    console.log('Authorization code received:', code.substring(0, 10) + '...');
+                    console.log('Backend URL:', window.CREATOR_OS_BACKEND_URL);
+                    
                     const api = new TikTokAPI();
-                    await api.exchangeCodeForToken(code);
+                    const result = await api.exchangeCodeForToken(code);
+                    console.log('Token exchange successful:', result);
                     
                     statusEl.textContent = 'Success! Redirecting to dashboard...';
                     setTimeout(() => {
                         window.location.href = '/';
                     }, 1500);
                 } catch (err) {
-                    statusEl.textContent = `Error: ${err.message}`;
-                    console.error('Token exchange error:', err);
+                    console.error('Token exchange error details:', err);
+                    const errorMessage = err.message || 'Unknown error occurred';
+                    statusEl.textContent = `Error: ${errorMessage}`;
+                    statusEl.style.color = '#f5576c';
+                    
+                    // Show more details in console
+                    if (err.response) {
+                        console.error('Error response:', err.response);
+                    }
+                    
                     setTimeout(() => {
                         window.location.href = '/';
-                    }, 3000);
+                    }, 5000);
                 }
             } else {
                 statusEl.textContent = 'No authorization code received. Redirecting...';
