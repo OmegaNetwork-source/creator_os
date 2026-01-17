@@ -49,66 +49,117 @@
     <script>
         // Set backend URL for callback page
         window.CREATOR_OS_BACKEND_URL = 'https://creator-os-h4vg.onrender.com';
+        
+        // Ensure status element is always visible
+        const statusEl = document.getElementById('status');
+        if (!statusEl) {
+            console.error('Status element not found!');
+        }
+        
+        // Handle script loading errors
+        window.addEventListener('error', function(e) {
+            console.error('Script error:', e);
+            if (statusEl) {
+                statusEl.textContent = 'Error loading scripts. Please refresh the page.';
+                statusEl.style.color = '#f5576c';
+            }
+        }, true);
     </script>
-    <script src="config.js"></script>
-    <script src="tiktok-api.js"></script>
+    <script src="config.js" onerror="if(statusEl) statusEl.textContent='Error loading config. Please refresh.';"></script>
+    <script src="tiktok-api.js" onerror="if(statusEl) statusEl.textContent='Error loading TikTok API. Please refresh.';"></script>
     <script>
         (async function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            const error = urlParams.get('error');
-            const statusEl = document.getElementById('status');
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                const error = urlParams.get('error');
+                const statusEl = document.getElementById('status');
 
-            if (error) {
-                statusEl.textContent = `Error: ${error}`;
+                if (!statusEl) {
+                    console.error('Status element not found');
+                    return;
+                }
+
+                if (error) {
+                    statusEl.textContent = `Error: ${error}`;
+                    statusEl.style.color = '#f5576c';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 3000);
+                    return;
+                }
+
+                if (code) {
+                    try {
+                        statusEl.textContent = 'Exchanging authorization code...';
+                        console.log('Authorization code received:', code.substring(0, 10) + '...');
+                        console.log('Backend URL:', window.CREATOR_OS_BACKEND_URL);
+                        
+                        // Check if TikTokAPI is available
+                        if (typeof TikTokAPI === 'undefined') {
+                            throw new Error('TikTok API library not loaded. Please refresh the page.');
+                        }
+                        
+                        const api = new TikTokAPI();
+                        
+                        // Add timeout for token exchange
+                        const tokenPromise = api.exchangeCodeForToken(code);
+                        const timeoutPromise = new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Request timed out. The backend may be sleeping. Please try again.')), 30000)
+                        );
+                        
+                        const result = await Promise.race([tokenPromise, timeoutPromise]);
+                        console.log('Token exchange successful:', result);
+                        console.log('Stored access token:', localStorage.getItem('tiktok_access_token') ? 'YES' : 'NO');
+                        console.log('Stored refresh token:', localStorage.getItem('tiktok_refresh_token') ? 'YES' : 'NO');
+                        
+                        // Verify token was stored
+                        const storedToken = localStorage.getItem('tiktok_access_token');
+                        if (!storedToken) {
+                            throw new Error('Token was not stored properly. Check console for details.');
+                        }
+                        
+                        statusEl.textContent = 'Success! Redirecting to dashboard...';
+                        statusEl.style.color = '#000';
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1500);
+                    } catch (err) {
+                        console.error('Token exchange error details:', err);
+                        const errorMessage = err.message || 'Unknown error occurred';
+                        statusEl.textContent = `Error: ${errorMessage}`;
+                        statusEl.style.color = '#f5576c';
+                        
+                        // Show more details in console
+                        if (err.response) {
+                            console.error('Error response:', err.response);
+                        }
+                        
+                        // If it's a network error, suggest checking backend
+                        if (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('Failed to fetch')) {
+                            statusEl.textContent += ' (Backend may be sleeping. Wait 30 seconds and try again.)';
+                        }
+                        
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 5000);
+                    }
+                } else {
+                    statusEl.textContent = 'No authorization code received. Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('Fatal error in callback:', err);
+                const statusEl = document.getElementById('status');
+                if (statusEl) {
+                    statusEl.textContent = 'An unexpected error occurred. Redirecting...';
+                    statusEl.style.color = '#f5576c';
+                }
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 3000);
-                return;
-            }
-
-            if (code) {
-                try {
-                    statusEl.textContent = 'Exchanging authorization code...';
-                    console.log('Authorization code received:', code.substring(0, 10) + '...');
-                    console.log('Backend URL:', window.CREATOR_OS_BACKEND_URL);
-                    
-                    const api = new TikTokAPI();
-                    const result = await api.exchangeCodeForToken(code);
-                    console.log('Token exchange successful:', result);
-                    console.log('Stored access token:', localStorage.getItem('tiktok_access_token') ? 'YES' : 'NO');
-                    console.log('Stored refresh token:', localStorage.getItem('tiktok_refresh_token') ? 'YES' : 'NO');
-                    
-                    // Verify token was stored
-                    const storedToken = localStorage.getItem('tiktok_access_token');
-                    if (!storedToken) {
-                        throw new Error('Token was not stored properly. Check console for details.');
-                    }
-                    
-                    statusEl.textContent = 'Success! Redirecting to dashboard...';
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 1500);
-                } catch (err) {
-                    console.error('Token exchange error details:', err);
-                    const errorMessage = err.message || 'Unknown error occurred';
-                    statusEl.textContent = `Error: ${errorMessage}`;
-                    statusEl.style.color = '#f5576c';
-                    
-                    // Show more details in console
-                    if (err.response) {
-                        console.error('Error response:', err.response);
-                    }
-                    
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 5000);
-                }
-            } else {
-                statusEl.textContent = 'No authorization code received. Redirecting...';
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 2000);
             }
         })();
     </script>
