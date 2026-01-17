@@ -257,6 +257,26 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug endpoint to verify environment variables (without exposing secrets)
+app.get('/api/debug/env', (req, res) => {
+    res.json({
+        client_key: TIKTOK_CLIENT_KEY,
+        client_key_length: TIKTOK_CLIENT_KEY?.length || 0,
+        client_secret_set: !!TIKTOK_CLIENT_SECRET,
+        client_secret_length: TIKTOK_CLIENT_SECRET?.length || 0,
+        client_secret_first_4: TIKTOK_CLIENT_SECRET?.substring(0, 4) || 'NONE',
+        client_secret_last_4: TIKTOK_CLIENT_SECRET?.substring(TIKTOK_CLIENT_SECRET.length - 4) || 'NONE',
+        redirect_uri: REDIRECT_URI,
+        from_env_var: {
+            client_key: !!process.env.TIKTOK_CLIENT_KEY,
+            client_secret: !!process.env.TIKTOK_CLIENT_SECRET,
+            redirect_uri: !!process.env.REDIRECT_URI
+        },
+        expected_secret: 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu',
+        secret_matches: TIKTOK_CLIENT_SECRET === 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu'
+    });
+});
+
 // Serve index.html for all other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
