@@ -224,4 +224,18 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Creator OS backend server running on port ${PORT}`);
     console.log(`TikTok Client Key: ${TIKTOK_CLIENT_KEY.substring(0, 10)}...`);
+    console.log(`Environment Variables Status:`);
+    console.log(`  TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY ? '✅ SET' : '❌ MISSING'}`);
+    console.log(`  TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET ? '✅ SET (' + TIKTOK_CLIENT_SECRET.length + ' chars)' : '❌ MISSING'}`);
+    console.log(`  REDIRECT_URI: ${REDIRECT_URI}`);
+    console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+    
+    // Verify client secret matches expected value
+    const expectedSecret = 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu';
+    if (TIKTOK_CLIENT_SECRET === expectedSecret) {
+        console.log(`  ✅ Client secret matches expected value`);
+    } else {
+        console.log(`  ⚠️  Client secret does NOT match expected value`);
+        console.log(`  Expected length: ${expectedSecret.length}, Got: ${TIKTOK_CLIENT_SECRET?.length || 0}`);
+    }
 });
