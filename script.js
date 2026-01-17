@@ -6,23 +6,31 @@ let savedIdeas = JSON.parse(localStorage.getItem('creator_os_ideas') || '[]');
 let savedTrends = JSON.parse(localStorage.getItem('creator_os_trends') || '[]');
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize TikTok API
-    if (typeof TikTokAPI !== 'undefined') {
-        tiktokAPI = new TikTokAPI();
-        checkAuthStatus();
+    try {
+        // Initialize TikTok API
+        if (typeof TikTokAPI !== 'undefined') {
+            tiktokAPI = new TikTokAPI();
+            checkAuthStatus();
+        }
+    } catch (e) {
+        console.error('TikTok API initialization error:', e);
     }
 
     // Initialize all features
-    initTabNavigation();
-    initTrendDiscovery();
-    initContentPlanning();
-    initPerformanceInsights();
-    initEngagementManagement();
-    initTikTokIntegration();
+    try {
+        initTabNavigation();
+        initTrendDiscovery();
+        initContentPlanning();
+        initPerformanceInsights();
+        initEngagementManagement();
+        initTikTokIntegration();
 
-    // Load saved data
-    loadSavedIdeas();
-    loadSavedTrends();
+        // Load saved data
+        loadSavedIdeas();
+        loadSavedTrends();
+    } catch (e) {
+        console.error('Initialization error:', e);
+    }
 });
 
 // ==================== Tab Navigation ====================
@@ -432,11 +440,19 @@ function handleTikTokLogout() {
 }
 
 async function loadTikTokData() {
-    if (!tiktokAPI || !tiktokAPI.isAuthenticated()) return;
+    if (!tiktokAPI || !tiktokAPI.isAuthenticated()) {
+        console.log('Not authenticated, skipping data load');
+        return;
+    }
+
+    console.log('Loading TikTok data...');
 
     try {
-        // Load user info
-        const userInfo = await tiktokAPI.getUserInfo();
+        // Load user info (force refresh)
+        console.log('Fetching user info...');
+        const userInfo = await tiktokAPI.getUserInfo(true);
+        console.log('User info received:', userInfo);
+        
         if (userInfo.data?.user) {
             const username = userInfo.data.user.display_name || userInfo.data.user.username || 'TikTok User';
             const usernameEl = document.getElementById('username');
@@ -445,18 +461,27 @@ async function loadTikTokData() {
 
         // Load user videos and calculate stats
         try {
+            console.log('Fetching user videos...');
             const videos = await tiktokAPI.getUserVideos();
+            console.log('Videos received:', videos);
+            
             if (videos.data?.videos) {
                 updatePerformanceStats(videos.data.videos);
                 updateBestPerforming(videos.data.videos);
+            } else {
+                console.warn('No videos in response:', videos);
             }
         } catch (e) {
-            console.log('Could not load videos:', e);
+            console.error('Could not load videos:', e);
+            alert('Could not load videos: ' + e.message);
         }
 
         // Load trending data
         try {
+            console.log('Fetching trending data...');
             const trending = await tiktokAPI.getTrendingHashtags();
+            console.log('Trending data received:', trending);
+            
             if (trending.data?.hashtags) {
                 updateTrendingList(trending.data.hashtags);
             }
@@ -466,6 +491,7 @@ async function loadTikTokData() {
 
     } catch (error) {
         console.error('Error loading TikTok data:', error);
+        alert('Error loading TikTok data: ' + error.message);
     }
 }
 

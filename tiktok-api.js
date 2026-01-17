@@ -108,29 +108,37 @@ class TikTokAPI {
             }
         };
 
+        const requestBody = options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined;
+
+        console.log('API Request:', { url, method: options.method || 'POST', endpoint });
+
         const response = await fetch(url, {
-            ...defaultOptions,
-            ...options,
             method: options.method || 'POST',
             headers: {
                 ...defaultOptions.headers,
-                ...options.headers
+                ...(options.headers || {})
             },
-            body: options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined
+            body: requestBody
         });
+
+        console.log('API Response:', { status: response.status, statusText: response.statusText });
 
         if (response.status === 401) {
             // Token expired, try to refresh
+            console.log('Token expired, refreshing...');
             await this.refreshAccessToken();
             return this.apiRequest(endpoint, options);
         }
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.error?.message || 'API request failed');
+            console.error('API Error:', error);
+            throw new Error(error.error?.message || error.message || `API request failed: ${response.status} ${response.statusText}`);
         }
 
-        return response.json();
+        const data = await response.json();
+        console.log('API Success:', { endpoint, dataKeys: Object.keys(data) });
+        return data;
     }
 
     // Refresh access token (through backend)
@@ -160,18 +168,34 @@ class TikTokAPI {
     }
 
     // Get user info
-    async getUserInfo() {
-        const cached = localStorage.getItem(STORAGE_KEYS.user_info);
-        if (cached) {
-            try {
-                return JSON.parse(cached);
-            } catch (e) {
-                // Invalid cache, fetch fresh
+    async getUserInfo(forceRefresh = false) {
+        // Always fetch fresh data if forceRefresh is true
+        if (!forceRefresh) {
+            const cached = localStorage.getItem(STORAGE_KEYS.user_info);
+            if (cached) {
+                try {
+                    const cachedData = JSON.parse(cached);
+                    // Return cached but also fetch fresh in background
+                    this.apiRequest('user/info/', { method: 'POST', body: { fields: ['open_id', 'union_id', 'avatar_url', 'display_name', 'username'] } })
+                        .then(data => {
+                            if (data.data?.user) {
+                                localStorage.setItem(STORAGE_KEYS.user_info, JSON.stringify(data.data.user));
+                            }
+                        })
+                        .catch(e => console.log('Background refresh failed:', e));
+                    return { data: { user: cachedData } };
+                } catch (e) {
+                    // Invalid cache, fetch fresh
+                }
             }
         }
 
+        // TikTok API requires POST for user/info with fields
         const data = await this.apiRequest('user/info/', {
-            method: 'GET'
+            method: 'POST',
+            body: {
+                fields: ['open_id', 'union_id', 'avatar_url', 'display_name', 'username']
+            }
         });
 
         if (data.data?.user) {
@@ -182,12 +206,12 @@ class TikTokAPI {
     }
 
     // Get user's videos
-    async getUserVideos(fields = ['id', 'title', 'cover_image_url', 'create_time', 'video_description']) {
+    async getUserVideos(fields = ['id', 'title', 'cover_image_url', 'create_time', 'video_description', 'statistics']) {
         return this.apiRequest('video/list/', {
             method: 'POST',
-            body: JSON.stringify({
+            body: {
                 fields: fields
-            })
+            }
         });
     }
 

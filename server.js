@@ -90,7 +90,7 @@ app.post('/api/tiktok/refresh', async (req, res) => {
     }
 });
 
-// Proxy API Requests
+// Proxy API Requests (POST)
 app.post('/api/tiktok/*', async (req, res) => {
     try {
         const accessToken = req.headers.authorization?.replace('Bearer ', '');
@@ -102,30 +102,33 @@ app.post('/api/tiktok/*', async (req, res) => {
         const endpoint = req.path.replace('/api/tiktok', '');
         const url = `https://open.tiktokapis.com/v2${endpoint}`;
 
+        console.log(`[POST] Proxying to TikTok: ${url}`, { body: req.body });
+
         const response = await fetch(url, {
-            method: req.method,
+            method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-                ...req.headers
+                'Content-Type': 'application/json'
             },
-            body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
+            body: JSON.stringify(req.body)
         });
 
         const data = await response.json();
+        console.log(`[POST] TikTok response:`, { status: response.status, endpoint, hasData: !!data });
 
         if (!response.ok) {
+            console.error(`[POST] TikTok API error:`, data);
             return res.status(response.status).json(data);
         }
 
         res.json(data);
     } catch (error) {
-        console.error('API proxy error:', error);
-        res.status(500).json({ error: 'API request failed' });
+        console.error('[POST] API proxy error:', error);
+        res.status(500).json({ error: 'API request failed', message: error.message });
     }
 });
 
-// Get API endpoint
+// Get API endpoint (TikTok API mostly uses POST, but handle GET for compatibility)
 app.get('/api/tiktok/*', async (req, res) => {
     try {
         const accessToken = req.headers.authorization?.replace('Bearer ', '');
@@ -137,6 +140,8 @@ app.get('/api/tiktok/*', async (req, res) => {
         const endpoint = req.path.replace('/api/tiktok', '');
         const url = `https://open.tiktokapis.com/v2${endpoint}`;
 
+        console.log(`[GET] Proxying to TikTok: ${url}`);
+
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -146,15 +151,17 @@ app.get('/api/tiktok/*', async (req, res) => {
         });
 
         const data = await response.json();
+        console.log(`[GET] TikTok response:`, { status: response.status, hasData: !!data });
 
         if (!response.ok) {
+            console.error(`[GET] TikTok API error:`, data);
             return res.status(response.status).json(data);
         }
 
         res.json(data);
     } catch (error) {
-        console.error('API proxy error:', error);
-        res.status(500).json({ error: 'API request failed' });
+        console.error('[GET] API proxy error:', error);
+        res.status(500).json({ error: 'API request failed', message: error.message });
     }
 });
 
