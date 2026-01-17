@@ -200,7 +200,9 @@ class TikTokAPI {
         const backendUrl = this.getBackendUrl();
         // Ensure endpoint starts with / and doesn't have double slashes
         const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        const url = `${backendUrl}/api/tiktok${cleanEndpoint}`;
+        // Remove any double slashes
+        const normalizedEndpoint = cleanEndpoint.replace(/\/+/g, '/');
+        const url = `${backendUrl}/api/tiktok${normalizedEndpoint}`;
         
         const defaultOptions = {
             headers: {
@@ -277,7 +279,7 @@ class TikTokAPI {
                 try {
                     const cachedData = JSON.parse(cached);
                     // Return cached but also fetch fresh in background
-                    this.apiRequest('user/info/', { method: 'POST', body: { fields: ['open_id', 'union_id', 'avatar_url', 'display_name', 'username'] } })
+                    this.getUserInfo(true)
                         .then(data => {
                             if (data.data?.user) {
                                 localStorage.setItem(STORAGE_KEYS.user_info, JSON.stringify(data.data.user));
@@ -291,12 +293,10 @@ class TikTokAPI {
             }
         }
 
-        // TikTok API requires POST for user/info with fields
-        const data = await this.apiRequest('user/info/', {
-            method: 'POST',
-            body: {
-                fields: ['open_id', 'union_id', 'avatar_url', 'display_name', 'username']
-            }
+        // TikTok Display API: GET /v2/user/info/ with fields as query params
+        const fields = ['open_id', 'union_id', 'avatar_url', 'display_name', 'username'].join(',');
+        const data = await this.apiRequest(`/user/info/?fields=${fields}`, {
+            method: 'GET'
         });
 
         if (data.data?.user) {
@@ -307,11 +307,13 @@ class TikTokAPI {
     }
 
     // Get user's videos
-    async getUserVideos(fields = ['id', 'title', 'cover_image_url', 'create_time', 'video_description', 'statistics']) {
-        return this.apiRequest('video/list/', {
+    async getUserVideos(fields = ['id', 'title', 'cover_image_url', 'create_time', 'video_description', 'statistics'], maxCount = 20) {
+        // TikTok Display API: POST /v2/video/list/ with fields as query params and max_count in body
+        const fieldsStr = fields.join(',');
+        return this.apiRequest(`/video/list/?fields=${fieldsStr}`, {
             method: 'POST',
             body: {
-                fields: fields
+                max_count: maxCount
             }
         });
     }

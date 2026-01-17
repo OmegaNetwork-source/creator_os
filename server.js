@@ -211,7 +211,9 @@ app.post('/api/tiktok/*', async (req, res) => {
         const endpoint = req.path.replace('/api/tiktok', '');
         // Ensure endpoint starts with / for TikTok API
         const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        const url = `https://open.tiktokapis.com/v2${cleanEndpoint}`;
+        // Remove any double slashes
+        const normalizedEndpoint = cleanEndpoint.replace(/\/+/g, '/');
+        const url = `https://open.tiktokapis.com/v2${normalizedEndpoint}`;
 
         console.log(`[POST] Proxying to TikTok: ${url}`, { body: req.body });
 
@@ -251,7 +253,9 @@ app.get('/api/tiktok/*', async (req, res) => {
         const endpoint = req.path.replace('/api/tiktok', '');
         // Ensure endpoint starts with / for TikTok API
         const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        const url = `https://open.tiktokapis.com/v2${cleanEndpoint}`;
+        // Remove any double slashes
+        const normalizedEndpoint = cleanEndpoint.replace(/\/+/g, '/');
+        const url = `https://open.tiktokapis.com/v2${normalizedEndpoint}`;
 
         console.log(`[GET] Proxying to TikTok: ${url}`);
 
