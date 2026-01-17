@@ -112,7 +112,20 @@ class TikTokAPI {
 
     // Check if user is authenticated
     isAuthenticated() {
-        return !!this.accessToken;
+        // Check both instance variable and localStorage
+        const storedToken = localStorage.getItem(STORAGE_KEYS.access_token);
+        if (storedToken && !this.accessToken) {
+            // Sync from localStorage if instance is out of sync
+            this.accessToken = storedToken;
+            this.refreshToken = localStorage.getItem(STORAGE_KEYS.refresh_token);
+        }
+        const hasToken = !!(this.accessToken || storedToken);
+        console.log('🔐 isAuthenticated check:', {
+            instanceToken: !!this.accessToken,
+            localStorageToken: !!storedToken,
+            result: hasToken
+        });
+        return hasToken;
     }
 
     // Logout
