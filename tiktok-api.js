@@ -37,31 +37,68 @@ class TikTokAPI {
         
         console.log('🔄 Exchanging code for token at:', url);
         
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code })
-        });
+        try {
+            // Create abort controller for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code }),
+                signal: controller.signal
+            }).catch(err => {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    throw new Error('Request timed out. The backend may be sleeping. Please wait 30 seconds and try again.');
+                }
+                if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                    throw new Error('Network error: Cannot reach backend server. The backend may be sleeping or unavailable.');
+                }
+                throw err;
+            });
+            
+            clearTimeout(timeoutId);
 
-        console.log('📡 Token exchange response status:', response.status, response.statusText);
+            console.log('📡 Token exchange response status:', response.status, response.statusText);
 
-        const data = await response.json().catch(async (e) => {
-            const text = await response.text();
-            console.error('❌ Failed to parse response:', text);
-            throw new Error(`Server error: ${response.status} ${response.statusText}`);
-        });
+            // Handle non-JSON responses
+            const contentType = response.headers.get('content-type');
+            let data;
+            
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json().catch(async (e) => {
+                    const text = await response.text();
+                    console.error('❌ Failed to parse JSON response:', text);
+                    throw new Error(`Server error: ${response.status} ${response.statusText}. Response: ${text.substring(0, 200)}`);
+                });
+            } else {
+                const text = await response.text();
+                console.error('❌ Non-JSON response received:', text.substring(0, 200));
+                throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
+            }
 
-        if (!response.ok) {
-            console.error('❌ Token exchange failed:', data);
-            const errorMsg = data.error?.message || data.error_description || data.error || JSON.stringify(data);
-            throw new Error(errorMsg);
+            if (!response.ok) {
+                console.error('❌ Token exchange failed:', data);
+                const errorMsg = data.error?.message || data.error_description || data.error || JSON.stringify(data);
+                throw new Error(errorMsg);
+            }
+
+            console.log('✅ Token exchange successful');
+            this.setTokens(data);
+            return data;
+        } catch (err) {
+            // Re-throw with better error messages
+            if (err.message.includes('timeout') || err.message.includes('sleeping')) {
+                throw err;
+            }
+            if (err.message.includes('Network error') || err.message.includes('fetch')) {
+                throw new Error('Cannot connect to backend server. The server may be sleeping. Please wait 30 seconds and try again.');
+            }
+            throw err;
         }
-
-        console.log('✅ Token exchange successful');
-        this.setTokens(data);
-        return data;
     }
 
     // Get backend URL (use same domain or environment variable)
