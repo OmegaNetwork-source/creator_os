@@ -198,7 +198,9 @@ class TikTokAPI {
         }
 
         const backendUrl = this.getBackendUrl();
-        const url = `${backendUrl}/api/tiktok${endpoint}`;
+        // Ensure endpoint starts with / and doesn't have double slashes
+        const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        const url = `${backendUrl}/api/tiktok${cleanEndpoint}`;
         
         const defaultOptions = {
             headers: {
