@@ -23,9 +23,11 @@ const TIKTOK_CONFIG = {
     // Scopes for TikTok API
     // For sandbox apps, only basic scopes are available
     // Update these in TikTok Developer Portal → Your App → Products → Enable the products you need
-    // TEMPORARILY TESTING WITH ONLY user.info.basic TO ISOLATE SCOPE ISSUE
+    // user.info.basic: avatar_url, display_name, open_id, union_id
+    // user.info.profile: bio_description, profile_web_link, profile_deep_link, is_verified
     scopes: [
         'user.info.basic',
+        'user.info.profile' // For bio/description
         // 'video.list' // Temporarily disabled to test if user.info.basic works
     ].filter(s => s).join(',') // Filter out undefined/empty values
 };

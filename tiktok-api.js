@@ -314,9 +314,9 @@ class TikTokAPI {
         }
 
         // TikTok Display API: GET /v2/user/info/ with fields as query params
-        // NOTE: user.info.basic scope only supports: open_id, union_id, avatar_url, display_name
-        // 'username' field requires user.info.profile scope, so we've removed it
-        const fields = ['open_id', 'union_id', 'avatar_url', 'display_name'].join(',');
+        // user.info.basic scope supports: open_id, union_id, avatar_url, display_name
+        // user.info.profile scope supports: bio_description, profile_web_link, profile_deep_link, is_verified
+        const fields = ['open_id', 'union_id', 'avatar_url', 'display_name', 'bio_description'].join(',');
         // Explicitly construct endpoint without leading slash
         const endpoint = `user/info/?fields=${fields}`;
         console.log('📞 getUserInfo - calling apiRequest with endpoint:', endpoint);

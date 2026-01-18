@@ -592,8 +592,11 @@ async function loadTikTokData() {
         
         if (userInfo.data?.user) {
             const user = userInfo.data.user;
+            console.log('📋 Full user data received:', user);
+            
             const username = user.display_name || 'TikTok User';
             const avatarUrl = user.avatar_url;
+            const bio = user.bio_description || user.bio || '';
             
             // Update username
             const usernameEl = document.getElementById('username');
@@ -601,13 +604,34 @@ async function loadTikTokData() {
             
             // Update avatar/profile picture
             const avatarEl = document.getElementById('user-avatar');
-            if (avatarEl && avatarUrl) {
-                avatarEl.src = avatarUrl;
-                avatarEl.style.display = 'block';
-                avatarEl.alt = username + ' profile picture';
+            if (avatarEl) {
+                if (avatarUrl) {
+                    avatarEl.src = avatarUrl;
+                    avatarEl.style.display = 'block';
+                    avatarEl.alt = username + ' profile picture';
+                    console.log('✅ Avatar URL set:', avatarUrl);
+                } else {
+                    console.warn('⚠️ No avatar_url in response');
+                    avatarEl.style.display = 'none';
+                }
             }
             
-            console.log('✅ User info updated:', { username, hasAvatar: !!avatarUrl });
+            // Update bio if available
+            const bioEl = document.getElementById('user-bio');
+            if (bioEl) {
+                if (bio) {
+                    bioEl.textContent = bio;
+                    bioEl.style.display = 'block';
+                    console.log('✅ Bio set:', bio);
+                } else {
+                    console.warn('⚠️ No bio_description in response (requires user.info.profile scope)');
+                    bioEl.style.display = 'none';
+                }
+            }
+            
+            console.log('✅ User info updated:', { username, hasAvatar: !!avatarUrl, hasBio: !!bio });
+        } else {
+            console.error('❌ No user data in response:', userInfo);
         }
 
         // Load user videos and calculate stats
