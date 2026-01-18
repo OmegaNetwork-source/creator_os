@@ -228,7 +228,7 @@ class TikTokAPI {
         });
 
         const response = await fetch(url, {
-            method: options.method || 'POST',
+            method: method,
             headers: {
                 ...defaultOptions.headers,
                 ...(options.headers || {})
