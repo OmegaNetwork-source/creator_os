@@ -28,9 +28,9 @@ const TIKTOK_CONFIG = {
     // video.publish: Required for Content Posting API
     scopes: [
         'user.info.basic',
-        'video.publish'
+        'video.list' // Required for /video/list/ endpoint
         // 'user.info.profile' // Uncomment and re-auth to get bio support
-        // 'video.list' // Temporarily disabled to test if user.info.basic works
+        // 'video.publish' // For posting videos (not needed for reading)
     ].filter(s => s).join(',') // Filter out undefined/empty values
 };
 
