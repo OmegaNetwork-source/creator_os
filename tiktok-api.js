@@ -612,6 +612,127 @@ class TikTokAPI {
             };
         }
     }
+
+    // ==================== QR Code Authorization ====================
+    
+    // Generate client ticket (random alphanumeric string)
+    generateClientTicket() {
+        return Math.random().toString(36).substring(2, 15) + 
+               Math.random().toString(36).substring(2, 15);
+    }
+
+    // Get QR Code - Request QR code from TikTok
+    async getQRCode(state = null) {
+        const backendUrl = this.getBackendUrl();
+        const scope = this.config.scopes;
+        
+        console.log('📱 Requesting QR code...', { scope, state: state ? 'provided' : 'none' });
+
+        const response = await fetch(`${backendUrl}/api/tiktok/qrcode/get`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                scope: scope,
+                ...(state && { state })
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error?.message || error.error_description || 'Failed to get QR code');
+        }
+
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error_description || data.error || 'Failed to get QR code');
+        }
+
+        // Generate client ticket
+        const clientTicket = this.generateClientTicket();
+        
+        // Store client ticket and token for later validation
+        sessionStorage.setItem('tiktok_qr_client_ticket', clientTicket);
+        sessionStorage.setItem('tiktok_qr_token', data.token);
+
+        // Replace "tobefilled" in scan_qrcode_url with our client ticket
+        const scanUrl = data.scan_qrcode_url;
+        const modifiedUrl = scanUrl.replace(/client_ticket=tobefilled/i, `client_ticket=${encodeURIComponent(clientTicket)}`);
+
+        console.log('✅ QR code received', { hasToken: !!data.token, hasUrl: !!modifiedUrl });
+
+        return {
+            scan_qrcode_url: modifiedUrl,
+            token: data.token,
+            client_ticket: clientTicket
+        };
+    }
+
+    // Check QR Code Status - Poll for status updates
+    async checkQRCodeStatus(token) {
+        if (!token) {
+            token = sessionStorage.getItem('tiktok_qr_token');
+        }
+
+        if (!token) {
+            throw new Error('QR code token is required');
+        }
+
+        const backendUrl = this.getBackendUrl();
+        const storedTicket = sessionStorage.getItem('tiktok_qr_client_ticket');
+
+        const response = await fetch(`${backendUrl}/api/tiktok/qrcode/check`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token })
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error?.message || error.error_description || 'Failed to check QR code status');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error_description || data.error || 'Failed to check QR code status');
+        }
+
+        // Validate client_ticket matches what we generated
+        if (storedTicket && data.client_ticket && data.client_ticket !== storedTicket) {
+            console.warn('⚠️ Client ticket mismatch - possible security issue', {
+                stored: storedTicket,
+                received: data.client_ticket
+            });
+            // Still return the data but log the warning
+        }
+
+        console.log('📱 QR code status:', data.status, { hasCode: !!data.code, hasRedirectUri: !!data.redirect_uri });
+
+        // Extract authorization code from redirect_uri if status is confirmed
+        let code = null;
+        if (data.status === 'confirmed' && data.redirect_uri) {
+            try {
+                const url = new URL(data.redirect_uri);
+                code = url.searchParams.get('code');
+            } catch (e) {
+                // If redirect_uri is not a valid URL, code might be in code field
+                code = data.code;
+            }
+        }
+
+        return {
+            status: data.status,
+            client_ticket: data.client_ticket,
+            code: code || data.code,
+            redirect_uri: data.redirect_uri,
+            state: data.state
+        };
+    }
 }
 
 // Export for use

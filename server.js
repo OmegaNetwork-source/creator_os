@@ -199,6 +199,80 @@ app.post('/api/tiktok/refresh', async (req, res) => {
     }
 });
 
+// QR Code - Get QR Code
+app.post('/api/tiktok/qrcode/get', async (req, res) => {
+    try {
+        const { scope, state } = req.body;
+
+        if (!scope) {
+            return res.status(400).json({ error: 'Scope is required' });
+        }
+
+        console.log('[QRCODE GET] Requesting QR code', { scope, state: state ? 'provided' : 'none' });
+
+        const response = await fetch('https://open.tiktokapis.com/v2/oauth/get_qrcode/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                client_key: TIKTOK_CLIENT_KEY,
+                scope: scope,
+                ...(state && { state: state })
+            })
+        });
+
+        const data = await response.json();
+        console.log('[QRCODE GET] Response:', { status: response.status, hasUrl: !!data.scan_qrcode_url, hasToken: !!data.token });
+
+        if (!response.ok) {
+            return res.status(response.status).json(data);
+        }
+
+        res.json(data);
+    } catch (error) {
+        console.error('[QRCODE GET] Error:', error);
+        res.status(500).json({ error: 'Failed to get QR code', message: error.message });
+    }
+});
+
+// QR Code - Check Status
+app.post('/api/tiktok/qrcode/check', async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ error: 'Token is required' });
+        }
+
+        console.log('[QRCODE CHECK] Checking QR code status', { token: token.substring(0, 10) + '...' });
+
+        const response = await fetch('https://open.tiktokapis.com/v2/oauth/check_qrcode/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                client_key: TIKTOK_CLIENT_KEY,
+                client_secret: TIKTOK_CLIENT_SECRET,
+                token: token
+            })
+        });
+
+        const data = await response.json();
+        console.log('[QRCODE CHECK] Response:', { status: response.status, qrStatus: data.status });
+
+        if (!response.ok) {
+            return res.status(response.status).json(data);
+        }
+
+        res.json(data);
+    } catch (error) {
+        console.error('[QRCODE CHECK] Error:', error);
+        res.status(500).json({ error: 'Failed to check QR code status', message: error.message });
+    }
+});
+
 // Proxy API Requests (POST)
 app.post('/api/tiktok/*', async (req, res) => {
     try {
