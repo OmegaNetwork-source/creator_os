@@ -23,9 +23,10 @@ const TIKTOK_CONFIG = {
     // Scopes for TikTok API
     // For sandbox apps, only basic scopes are available
     // Update these in TikTok Developer Portal → Your App → Products → Enable the products you need
+    // TEMPORARILY TESTING WITH ONLY user.info.basic TO ISOLATE SCOPE ISSUE
     scopes: [
-        'user.info.basic',
-        'video.list'
+        'user.info.basic'
+        // 'video.list' // Temporarily disabled to test if user.info.basic works
     ].join(',')
 };
 
