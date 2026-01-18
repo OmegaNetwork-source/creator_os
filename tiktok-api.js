@@ -383,13 +383,22 @@ class TikTokAPI {
                 // Handle different possible response formats
                 if (response.data?.list || response.data?.hashtags || response.data?.hashtag_list) {
                     const hashtags = response.data.list || response.data.hashtags || response.data.hashtag_list;
+                    
+                    // Helper to format numbers
+                    const formatNum = (num) => {
+                        if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B';
+                        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                        return num.toString();
+                    };
+                    
                     return {
                         data: {
                             hashtags: hashtags.map(item => ({
                                 name: item.hashtag_name || item.name || item.title || 'Trending',
                                 engagement: item.growth_rate ? `+${item.growth_rate}%` : null,
-                                videos: item.video_count ? formatNumber(item.video_count) : null,
-                                views: item.view_count ? formatNumber(item.view_count) : null,
+                                videos: item.video_count ? formatNum(item.video_count) : null,
+                                views: item.view_count ? formatNum(item.view_count) : null,
                                 tags: item.related_hashtags || []
                             }))
                         }
