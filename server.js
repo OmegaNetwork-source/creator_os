@@ -213,9 +213,14 @@ app.post('/api/tiktok/*', async (req, res) => {
         const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
         // Remove any double slashes
         const normalizedEndpoint = cleanEndpoint.replace(/\/+/g, '/');
-        const url = `https://open.tiktokapis.com/v2${normalizedEndpoint}`;
+        
+        // Extract query string from original request URL (needed for fields parameter)
+        const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+        const url = `https://open.tiktokapis.com/v2${normalizedEndpoint}${queryString}`;
 
         console.log(`[POST] Proxying to TikTok: ${url}`, { body: req.body });
+        console.log(`[POST] Original URL: ${req.url}`);
+        console.log(`[POST] Query string: ${queryString}`);
 
         const response = await fetch(url, {
             method: 'POST',
