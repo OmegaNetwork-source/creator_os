@@ -28,6 +28,8 @@ class TikTokAPI {
         
         const authUrl = `${this.config.auth_url}?${params.toString()}`;
         console.log('🔗 Full auth URL:', authUrl);
+        console.log('🔗 Scopes being requested:', this.config.scopes);
+        console.log('🔗 Scopes breakdown:', this.config.scopes.split(','));
         return authUrl;
     }
 
