@@ -13,7 +13,8 @@ const TIKTOK_CONFIG = {
     api_base: 'https://open.tiktokapis.com/v2/',
     
     // Redirect URI (must match your TikTok app settings)
-    redirect_uri: 'https://creatoros.omeganetwork.co/callback.html',
+    // If testing on Render, use Render URL. For production, use your main domain.
+    redirect_uri: window.CREATOR_OS_REDIRECT_URI || 'https://creator-os-h4vg.onrender.com/callback.html',
     
     // Backend API URL (set this to your Render backend URL)
     // If not set, will use same origin
