@@ -88,21 +88,49 @@ This document tracks which TikTok API endpoints work with our current setup.
 
 ## Test Results (After Running Script)
 
+**Test Date:** January 18, 2026  
+**Token Used:** `act.xvwBSU9IzMpXJR4t...` (partial)
+
+### ⚠️ Important Note
+
+All tests returned `access_token_invalid` errors. This likely means:
+- Token has expired (tokens expire after 24 hours)
+- Need to refresh the token or re-authenticate
+- Token format issue (special characters may need escaping)
+
+**Next Steps:** Get a fresh token by logging out and back in, then re-run tests.
+
 ### ✅ Working Endpoints
 
-*Run `node test-tiktok-apis.js <token>` to populate*
+*None - all tests failed due to invalid token*
 
 ### 🔒 Needs Additional Scope
 
-*Run `node test-tiktok-apis.js <token>` to populate*
+*Could not test - token invalid*
 
 ### ❌ Not Available / Not Found
 
-*Run `node test-tiktok-apis.js <token>` to populate*
+**Research API Endpoints (500 errors):**
+- `/research/hashtag/trending/` - Returns 500 (likely not available in Sandbox)
+- `/research/hashtag/search/` - Returns 500
+- `/research/sound/trending/` - Returns 500
+- `/video/comment/list/` - Returns 500 (may not exist)
+- `/user/search/` - Returns 500 (may not exist)
 
 ### 💥 Failed Tests
 
-*Run `node test-tiktok-apis.js <token>` to populate*
+**All endpoints returned errors:**
+- **401 Unauthorized (access_token_invalid):**
+  - `/user/info/` (all variations)
+  - `/video/list/`
+  - `/video/query/`
+  
+- **500 Internal Server Error:**
+  - `/research/hashtag/trending/`
+  - `/research/hashtag/search/`
+  - `/research/sound/trending/`
+  - `/video/comment/list/`
+  - `/user/search/`
 
 ---
 

@@ -367,6 +367,124 @@ class TikTokAPI {
         });
     }
 
+    // ==================== Content Posting API ====================
+    
+    // Query Creator Info - Required before posting content
+    async queryCreatorInfo() {
+        return this.apiRequest('post/publish/creator_info/query/', {
+            method: 'POST'
+        });
+    }
+
+    // Post Video - Direct post to TikTok
+    // source: 'FILE_UPLOAD' or 'PULL_FROM_URL'
+    async postVideo(postInfo, sourceInfo) {
+        const body = {
+            post_info: {
+                title: postInfo.title || '',
+                privacy_level: postInfo.privacy_level || 'PUBLIC_TO_EVERYONE',
+                disable_duet: postInfo.disable_duet || false,
+                disable_comment: postInfo.disable_comment || false,
+                disable_stitch: postInfo.disable_stitch || false,
+                video_cover_timestamp_ms: postInfo.video_cover_timestamp_ms || 1000
+            },
+            source_info: sourceInfo
+        };
+
+        return this.apiRequest('post/publish/video/init/', {
+            method: 'POST',
+            body: body
+        });
+    }
+
+    // Upload video chunk (for FILE_UPLOAD method)
+    // This is a direct upload to TikTok's upload server, not through our backend
+    async uploadVideoChunk(uploadUrl, videoFile, chunkStart = 0, chunkSize = null) {
+        const fileSize = videoFile.size;
+        const end = chunkSize ? Math.min(chunkStart + chunkSize, fileSize - 1) : fileSize - 1;
+        const chunk = videoFile.slice(chunkStart, end + 1);
+
+        const response = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Range': `bytes ${chunkStart}-${end}/${fileSize}`,
+                'Content-Type': 'video/mp4'
+            },
+            body: chunk
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Upload failed: ${response.status} ${response.statusText}. ${error}`);
+        }
+
+        return {
+            uploaded: end + 1,
+            total: fileSize,
+            complete: end + 1 >= fileSize
+        };
+    }
+
+    // Upload video in chunks (helper method)
+    async uploadVideoFile(uploadUrl, videoFile, onProgress = null) {
+        const chunkSize = 10 * 1024 * 1024; // 10MB chunks
+        let uploaded = 0;
+
+        while (uploaded < videoFile.size) {
+            const result = await this.uploadVideoChunk(uploadUrl, videoFile, uploaded, chunkSize);
+            uploaded = result.uploaded;
+
+            if (onProgress) {
+                onProgress({
+                    uploaded,
+                    total: videoFile.size,
+                    percent: Math.round((uploaded / videoFile.size) * 100)
+                });
+            }
+
+            if (result.complete) {
+                break;
+            }
+        }
+
+        return { success: true, uploaded, total: videoFile.size };
+    }
+
+    // Post Photo - Direct post to TikTok
+    async postPhoto(postInfo, sourceInfo) {
+        const body = {
+            post_info: {
+                title: postInfo.title || '',
+                description: postInfo.description || '',
+                disable_comment: postInfo.disable_comment || false,
+                privacy_level: postInfo.privacy_level || 'PUBLIC_TO_EVERYONE',
+                auto_add_music: postInfo.auto_add_music !== false
+            },
+            source_info: {
+                source: sourceInfo.source || 'PULL_FROM_URL',
+                photo_cover_index: sourceInfo.photo_cover_index || 1,
+                photo_images: sourceInfo.photo_images || []
+            },
+            post_mode: 'DIRECT_POST',
+            media_type: 'PHOTO'
+        };
+
+        return this.apiRequest('post/publish/content/init/', {
+            method: 'POST',
+            body: body
+        });
+    }
+
+    // Get Post Status - Check upload/posting status
+    async getPostStatus(publishId) {
+        return this.apiRequest('post/publish/status/fetch/', {
+            method: 'POST',
+            body: {
+                publish_id: publishId
+            }
+        });
+    }
+
     // Get trending hashtags
     // NOTE: TikTok Research API requires special approval and may not be available in Sandbox
     // This will try the Research API first, then fall back to enhanced mock data

@@ -25,8 +25,10 @@ const TIKTOK_CONFIG = {
     // Update these in TikTok Developer Portal → Your App → Products → Enable the products you need
     // user.info.basic: avatar_url, display_name, open_id, union_id (always requested)
     // user.info.profile: bio_description, profile_web_link, profile_deep_link, is_verified (optional - requires re-auth)
+    // video.publish: Required for Content Posting API
     scopes: [
-        'user.info.basic'
+        'user.info.basic',
+        'video.publish'
         // 'user.info.profile' // Uncomment and re-auth to get bio support
         // 'video.list' // Temporarily disabled to test if user.info.basic works
     ].filter(s => s).join(',') // Filter out undefined/empty values

@@ -73,6 +73,7 @@
             <button class="tab-btn" data-tab="planning">🗓 Content Planning</button>
             <button class="tab-btn" data-tab="performance">📊 Performance Insights</button>
             <button class="tab-btn" data-tab="engagement">💬 Engagement Management</button>
+            <button class="tab-btn" data-tab="posting">📤 Post Content</button>
         </div>
 
         <section class="dashboard">
@@ -368,6 +369,157 @@
                             <div class="engagement-stat">
                                 <strong>89%</strong>
                                 <span>Response Rate</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 📤 Post Content Tab -->
+            <div class="tab-content" id="tab-posting">
+                <div class="dashboard-grid">
+                    <div class="dashboard-card full-width">
+                        <h2>📤 Post Content to TikTok</h2>
+                        <p class="card-subtitle">Upload videos or photos directly to your TikTok account • Schedule posts • Manage your content</p>
+                        
+                        <div class="posting-tabs">
+                            <button class="post-tab-btn active" data-post-tab="video">📹 Post Video</button>
+                            <button class="post-tab-btn" data-post-tab="photo">📷 Post Photo</button>
+                            <button class="post-tab-btn" data-post-tab="status">📋 Post Status</button>
+                        </div>
+
+                        <!-- Post Video Tab -->
+                        <div class="post-tab-content active" id="post-video">
+                            <div class="post-form">
+                                <div class="form-group">
+                                    <label for="video-title">Video Title/Caption *</label>
+                                    <input type="text" id="video-title" class="input-field" placeholder="Enter video title with hashtags and mentions (e.g., #fyp @tiktok)" maxlength="2200">
+                                    <small>You can include hashtags (#) and mentions (@) in your title</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="video-privacy">Privacy Level</label>
+                                    <select id="video-privacy" class="input-field">
+                                        <option value="PUBLIC_TO_EVERYONE">Public</option>
+                                        <option value="MUTUAL_FOLLOW_FRIENDS">Friends</option>
+                                        <option value="SELF_ONLY">Private</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="video-disable-comment"> Disable Comments
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="video-disable-duet"> Disable Duet
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="video-disable-stitch"> Disable Stitch
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="video-source">Video Source</label>
+                                    <select id="video-source" class="input-field">
+                                        <option value="FILE_UPLOAD">Upload File</option>
+                                        <option value="PULL_FROM_URL">From URL (Verified Domain)</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="video-file-group">
+                                    <label for="video-file">Select Video File *</label>
+                                    <input type="file" id="video-file" accept="video/mp4,video/quicktime" class="input-field">
+                                    <small>Supported formats: MP4 (H.264), Max 300 seconds</small>
+                                </div>
+
+                                <div class="form-group" id="video-url-group" style="display: none;">
+                                    <label for="video-url">Video URL *</label>
+                                    <input type="url" id="video-url" class="input-field" placeholder="https://your-verified-domain.com/video.mp4">
+                                    <small>Must be from a verified domain or URL prefix</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="video-cover-timestamp">Cover Thumbnail Time (ms)</label>
+                                    <input type="number" id="video-cover-timestamp" class="input-field" value="1000" min="0">
+                                    <small>Timestamp in milliseconds for video cover thumbnail</small>
+                                </div>
+
+                                <div id="video-upload-progress" style="display: none;">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="video-progress-fill"></div>
+                                    </div>
+                                    <p id="video-progress-text">Uploading...</p>
+                                </div>
+
+                                <button id="post-video-btn" class="btn-primary">Post Video</button>
+                                <div id="video-post-result" class="post-result"></div>
+                            </div>
+                        </div>
+
+                        <!-- Post Photo Tab -->
+                        <div class="post-tab-content" id="post-photo">
+                            <div class="post-form">
+                                <div class="form-group">
+                                    <label for="photo-title">Photo Title *</label>
+                                    <input type="text" id="photo-title" class="input-field" placeholder="Enter photo title" maxlength="2200">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="photo-description">Description</label>
+                                    <textarea id="photo-description" class="input-field" rows="3" placeholder="Enter description with hashtags and mentions (e.g., #fyp @tiktok)" maxlength="2200"></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="photo-privacy">Privacy Level</label>
+                                    <select id="photo-privacy" class="input-field">
+                                        <option value="PUBLIC_TO_EVERYONE">Public</option>
+                                        <option value="MUTUAL_FOLLOW_FRIENDS">Friends</option>
+                                        <option value="SELF_ONLY">Private</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="photo-disable-comment"> Disable Comments
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="photo-auto-music" checked> Auto Add Music
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="photo-urls">Photo URLs * (One per line, from verified domain)</label>
+                                    <textarea id="photo-urls" class="input-field" rows="5" placeholder="https://your-verified-domain.com/photo1.webp&#10;https://your-verified-domain.com/photo2.webp"></textarea>
+                                    <small>Enter one URL per line. Must be from a verified domain. Supported formats: WEBP, JPG, PNG</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="photo-cover-index">Cover Photo Index</label>
+                                    <input type="number" id="photo-cover-index" class="input-field" value="1" min="1">
+                                    <small>Which photo should be the cover (1 = first photo)</small>
+                                </div>
+
+                                <button id="post-photo-btn" class="btn-primary">Post Photo</button>
+                                <div id="photo-post-result" class="post-result"></div>
+                            </div>
+                        </div>
+
+                        <!-- Post Status Tab -->
+                        <div class="post-tab-content" id="post-status">
+                            <div class="post-form">
+                                <div class="form-group">
+                                    <label for="status-publish-id">Publish ID *</label>
+                                    <input type="text" id="status-publish-id" class="input-field" placeholder="Enter publish_id from your post">
+                                    <small>Get this from the response when you post content</small>
+                                </div>
+
+                                <button id="check-status-btn" class="btn-primary">Check Status</button>
+                                <div id="status-result" class="post-result"></div>
+                            </div>
+
+                            <div class="recent-posts" id="recent-posts" style="margin-top: 2rem;">
+                                <h3>Recent Posts</h3>
+                                <div id="recent-posts-list"></div>
                             </div>
                         </div>
                     </div>

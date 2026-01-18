@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initPerformanceInsights();
         initEngagementManagement();
         initTikTokIntegration();
+        initContentPosting();
 
         // Load saved data
         loadSavedIdeas();
@@ -812,4 +813,375 @@ function resetDashboard() {
     if (likesEl) likesEl.textContent = '1.2K';
     if (commentsEl) commentsEl.textContent = '89';
     if (engagementEl) engagementEl.textContent = '9.6%';
+}
+
+// ==================== Content Posting ====================
+function initContentPosting() {
+    // Post tab navigation
+    const postTabBtns = document.querySelectorAll('.post-tab-btn');
+    const postTabContents = document.querySelectorAll('.post-tab-content');
+
+    postTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetTab = btn.getAttribute('data-post-tab');
+            
+            postTabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            postTabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `post-${targetTab}`) {
+                    content.classList.add('active');
+                }
+            });
+        });
+    });
+
+    // Video source toggle
+    const videoSource = document.getElementById('video-source');
+    const videoFileGroup = document.getElementById('video-file-group');
+    const videoUrlGroup = document.getElementById('video-url-group');
+
+    if (videoSource) {
+        videoSource.addEventListener('change', (e) => {
+            if (e.target.value === 'FILE_UPLOAD') {
+                videoFileGroup.style.display = 'block';
+                videoUrlGroup.style.display = 'none';
+            } else {
+                videoFileGroup.style.display = 'none';
+                videoUrlGroup.style.display = 'block';
+            }
+        });
+    }
+
+    // Post video button
+    const postVideoBtn = document.getElementById('post-video-btn');
+    if (postVideoBtn) {
+        postVideoBtn.addEventListener('click', handlePostVideo);
+    }
+
+    // Post photo button
+    const postPhotoBtn = document.getElementById('post-photo-btn');
+    if (postPhotoBtn) {
+        postPhotoBtn.addEventListener('click', handlePostPhoto);
+    }
+
+    // Check status button
+    const checkStatusBtn = document.getElementById('check-status-btn');
+    if (checkStatusBtn) {
+        checkStatusBtn.addEventListener('click', handleCheckStatus);
+    }
+
+    // Load recent posts from localStorage
+    loadRecentPosts();
+}
+
+async function handlePostVideo() {
+    if (!tiktokAPI || !tiktokAPI.isAuthenticated()) {
+        alert('Please connect your TikTok account first.');
+        return;
+    }
+
+    const title = document.getElementById('video-title').value.trim();
+    if (!title) {
+        alert('Please enter a video title.');
+        return;
+    }
+
+    const source = document.getElementById('video-source').value;
+    const videoFile = document.getElementById('video-file').files[0];
+    const videoUrl = document.getElementById('video-url').value.trim();
+    const privacy = document.getElementById('video-privacy').value;
+    const disableComment = document.getElementById('video-disable-comment').checked;
+    const disableDuet = document.getElementById('video-disable-duet').checked;
+    const disableStitch = document.getElementById('video-disable-stitch').checked;
+    const coverTimestamp = parseInt(document.getElementById('video-cover-timestamp').value) || 1000;
+
+    const postBtn = document.getElementById('post-video-btn');
+    const resultDiv = document.getElementById('video-post-result');
+    const progressDiv = document.getElementById('video-upload-progress');
+    const progressFill = document.getElementById('video-progress-fill');
+    const progressText = document.getElementById('video-progress-text');
+
+    try {
+        postBtn.disabled = true;
+        postBtn.textContent = 'Posting...';
+        resultDiv.innerHTML = '';
+
+        // Query creator info first
+        const creatorInfo = await tiktokAPI.queryCreatorInfo();
+        console.log('Creator info:', creatorInfo);
+
+        const postInfo = {
+            title: title,
+            privacy_level: privacy,
+            disable_comment: disableComment,
+            disable_duet: disableDuet,
+            disable_stitch: disableStitch,
+            video_cover_timestamp_ms: coverTimestamp
+        };
+
+        let sourceInfo;
+        let publishId;
+
+        if (source === 'FILE_UPLOAD') {
+            if (!videoFile) {
+                alert('Please select a video file.');
+                postBtn.disabled = false;
+                postBtn.textContent = 'Post Video';
+                return;
+            }
+
+            // Calculate chunk info
+            const chunkSize = 10 * 1024 * 1024; // 10MB
+            const totalChunks = Math.ceil(videoFile.size / chunkSize);
+
+            sourceInfo = {
+                source: 'FILE_UPLOAD',
+                video_size: videoFile.size,
+                chunk_size: chunkSize,
+                total_chunk_count: totalChunks
+            };
+
+            // Initialize post
+            const initResponse = await tiktokAPI.postVideo(postInfo, sourceInfo);
+            publishId = initResponse.data.publish_id;
+            const uploadUrl = initResponse.data.upload_url;
+
+            // Show progress
+            progressDiv.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Uploading video...';
+
+            // Upload video
+            await tiktokAPI.uploadVideoFile(uploadUrl, videoFile, (progress) => {
+                progressFill.style.width = progress.percent + '%';
+                progressText.textContent = `Uploading... ${progress.percent}%`;
+            });
+
+            progressText.textContent = 'Processing video...';
+        } else {
+            if (!videoUrl) {
+                alert('Please enter a video URL.');
+                postBtn.disabled = false;
+                postBtn.textContent = 'Post Video';
+                return;
+            }
+
+            sourceInfo = {
+                source: 'PULL_FROM_URL',
+                video_url: videoUrl
+            };
+
+            const initResponse = await tiktokAPI.postVideo(postInfo, sourceInfo);
+            publishId = initResponse.data.publish_id;
+        }
+
+        // Save to recent posts
+        saveRecentPost({
+            publish_id: publishId,
+            type: 'video',
+            title: title,
+            created_at: new Date().toISOString()
+        });
+
+        resultDiv.innerHTML = `
+            <div class="success-message">
+                <strong>✅ Video posted successfully!</strong>
+                <p>Publish ID: <code>${publishId}</code></p>
+                <p>Your video is being processed. Check the Post Status tab to monitor progress.</p>
+            </div>
+        `;
+
+        // Hide progress
+        progressDiv.style.display = 'none';
+
+    } catch (error) {
+        console.error('Error posting video:', error);
+        resultDiv.innerHTML = `
+            <div class="error-message">
+                <strong>❌ Error posting video</strong>
+                <p>${error.message}</p>
+            </div>
+        `;
+        progressDiv.style.display = 'none';
+    } finally {
+        postBtn.disabled = false;
+        postBtn.textContent = 'Post Video';
+    }
+}
+
+async function handlePostPhoto() {
+    if (!tiktokAPI || !tiktokAPI.isAuthenticated()) {
+        alert('Please connect your TikTok account first.');
+        return;
+    }
+
+    const title = document.getElementById('photo-title').value.trim();
+    if (!title) {
+        alert('Please enter a photo title.');
+        return;
+    }
+
+    const description = document.getElementById('photo-description').value.trim();
+    const privacy = document.getElementById('photo-privacy').value;
+    const disableComment = document.getElementById('photo-disable-comment').checked;
+    const autoAddMusic = document.getElementById('photo-auto-music').checked;
+    const photoUrls = document.getElementById('photo-urls').value.trim().split('\n').filter(url => url.trim());
+    const coverIndex = parseInt(document.getElementById('photo-cover-index').value) || 1;
+
+    if (photoUrls.length === 0) {
+        alert('Please enter at least one photo URL.');
+        return;
+    }
+
+    const postBtn = document.getElementById('post-photo-btn');
+    const resultDiv = document.getElementById('photo-post-result');
+
+    try {
+        postBtn.disabled = true;
+        postBtn.textContent = 'Posting...';
+        resultDiv.innerHTML = '';
+
+        const postInfo = {
+            title: title,
+            description: description,
+            privacy_level: privacy,
+            disable_comment: disableComment,
+            auto_add_music: autoAddMusic
+        };
+
+        const sourceInfo = {
+            source: 'PULL_FROM_URL',
+            photo_cover_index: coverIndex,
+            photo_images: photoUrls
+        };
+
+        const response = await tiktokAPI.postPhoto(postInfo, sourceInfo);
+        const publishId = response.data.publish_id;
+
+        // Save to recent posts
+        saveRecentPost({
+            publish_id: publishId,
+            type: 'photo',
+            title: title,
+            created_at: new Date().toISOString()
+        });
+
+        resultDiv.innerHTML = `
+            <div class="success-message">
+                <strong>✅ Photo posted successfully!</strong>
+                <p>Publish ID: <code>${publishId}</code></p>
+                <p>Your photo is being processed. Check the Post Status tab to monitor progress.</p>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('Error posting photo:', error);
+        resultDiv.innerHTML = `
+            <div class="error-message">
+                <strong>❌ Error posting photo</strong>
+                <p>${error.message}</p>
+            </div>
+        `;
+    } finally {
+        postBtn.disabled = false;
+        postBtn.textContent = 'Post Photo';
+    }
+}
+
+async function handleCheckStatus() {
+    if (!tiktokAPI || !tiktokAPI.isAuthenticated()) {
+        alert('Please connect your TikTok account first.');
+        return;
+    }
+
+    const publishId = document.getElementById('status-publish-id').value.trim();
+    if (!publishId) {
+        alert('Please enter a publish ID.');
+        return;
+    }
+
+    const checkBtn = document.getElementById('check-status-btn');
+    const resultDiv = document.getElementById('status-result');
+
+    try {
+        checkBtn.disabled = true;
+        checkBtn.textContent = 'Checking...';
+        resultDiv.innerHTML = '';
+
+        const response = await tiktokAPI.getPostStatus(publishId);
+        const status = response.data;
+
+        let statusHtml = `
+            <div class="status-info">
+                <h4>Post Status</h4>
+                <p><strong>Publish ID:</strong> <code>${publishId}</code></p>
+                <p><strong>Status:</strong> <span class="status-badge ${status.status?.toLowerCase()}">${status.status || 'Unknown'}</span></p>
+        `;
+
+        if (status.fail_reason) {
+            statusHtml += `<p><strong>Fail Reason:</strong> ${status.fail_reason}</p>`;
+        }
+
+        if (status.video_id) {
+            statusHtml += `<p><strong>Video ID:</strong> ${status.video_id}</p>`;
+        }
+
+        statusHtml += `</div>`;
+
+        resultDiv.innerHTML = statusHtml;
+
+    } catch (error) {
+        console.error('Error checking status:', error);
+        resultDiv.innerHTML = `
+            <div class="error-message">
+                <strong>❌ Error checking status</strong>
+                <p>${error.message}</p>
+            </div>
+        `;
+    } finally {
+        checkBtn.disabled = false;
+        checkBtn.textContent = 'Check Status';
+    }
+}
+
+function saveRecentPost(post) {
+    const recentPosts = JSON.parse(localStorage.getItem('creator_os_recent_posts') || '[]');
+    recentPosts.unshift(post);
+    // Keep only last 10 posts
+    if (recentPosts.length > 10) {
+        recentPosts.pop();
+    }
+    localStorage.setItem('creator_os_recent_posts', JSON.stringify(recentPosts));
+    loadRecentPosts();
+}
+
+function loadRecentPosts() {
+    const recentPosts = JSON.parse(localStorage.getItem('creator_os_recent_posts') || '[]');
+    const listDiv = document.getElementById('recent-posts-list');
+
+    if (!listDiv) return;
+
+    if (recentPosts.length === 0) {
+        listDiv.innerHTML = '<p>No recent posts</p>';
+        return;
+    }
+
+    listDiv.innerHTML = recentPosts.map(post => {
+        const date = new Date(post.created_at).toLocaleString();
+        return `
+            <div class="recent-post-item">
+                <div class="post-item-info">
+                    <strong>${post.title || 'Untitled'}</strong>
+                    <span class="post-type">${post.type === 'video' ? '📹' : '📷'}</span>
+                </div>
+                <div class="post-item-meta">
+                    <code>${post.publish_id}</code>
+                    <span>${date}</span>
+                </div>
+                <button class="btn-small" onclick="document.getElementById('status-publish-id').value='${post.publish_id}'; document.querySelector('[data-post-tab=\"status\"]').click();">Check Status</button>
+            </div>
+        `;
+    }).join('');
 }
