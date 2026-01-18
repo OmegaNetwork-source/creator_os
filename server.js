@@ -297,6 +297,154 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ==================== Trending Data (TikTok Creative Center) ====================
+
+// Cache for trending data (refresh every 30 minutes)
+let trendingCache = {
+    hashtags: null,
+    songs: null,
+    lastUpdated: null
+};
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
+// Fetch trending hashtags from TikTok Creative Center
+app.get('/api/trending/hashtags', async (req, res) => {
+    try {
+        // Check cache
+        if (trendingCache.hashtags && trendingCache.lastUpdated && 
+            (Date.now() - trendingCache.lastUpdated) < CACHE_DURATION) {
+            console.log('[TRENDING] Returning cached hashtags');
+            return res.json(trendingCache.hashtags);
+        }
+
+        console.log('[TRENDING] Fetching fresh hashtag data from TikTok Creative Center...');
+        
+        // TikTok Creative Center public API
+        const response = await fetch('https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=20&period=7&country_code=US&sort_by=popular', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json',
+                'Referer': 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/en'
+            }
+        });
+
+        if (!response.ok) {
+            console.error('[TRENDING] Creative Center API error:', response.status);
+            throw new Error(`Creative Center API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('[TRENDING] Raw response:', JSON.stringify(data).substring(0, 500));
+
+        if (data.code === 0 && data.data?.list) {
+            const hashtags = data.data.list.map((item, index) => ({
+                rank: index + 1,
+                name: `#${item.hashtag_name}`,
+                posts: formatNumber(item.publish_cnt),
+                views: formatNumber(item.video_views),
+                trend: item.trend_type === 1 ? 'rising' : item.trend_type === 2 ? 'hot' : 'stable',
+                change: item.rank_change ? (item.rank_change > 0 ? `+${item.rank_change}` : `${item.rank_change}`) : '0'
+            }));
+
+            trendingCache.hashtags = { success: true, data: { hashtags }, source: 'tiktok_creative_center' };
+            trendingCache.lastUpdated = Date.now();
+            
+            console.log(`[TRENDING] Successfully fetched ${hashtags.length} trending hashtags`);
+            return res.json(trendingCache.hashtags);
+        }
+
+        throw new Error('Invalid response format from Creative Center');
+    } catch (error) {
+        console.error('[TRENDING] Error fetching hashtags:', error.message);
+        
+        // Return fallback data
+        res.json({
+            success: true,
+            data: {
+                hashtags: [
+                    { rank: 1, name: '#fyp', posts: '15.2M', views: '2.8B', trend: 'hot', change: '0' },
+                    { rank: 2, name: '#foryou', posts: '12.1M', views: '2.1B', trend: 'hot', change: '0' },
+                    { rank: 3, name: '#viral', posts: '8.7M', views: '1.9B', trend: 'rising', change: '+2' },
+                    { rank: 4, name: '#trending', posts: '6.3M', views: '1.2B', trend: 'stable', change: '0' },
+                    { rank: 5, name: '#tiktok', posts: '4.2M', views: '750M', trend: 'stable', change: '-1' }
+                ]
+            },
+            source: 'fallback',
+            error: error.message
+        });
+    }
+});
+
+// Fetch trending songs/sounds from TikTok Creative Center
+app.get('/api/trending/songs', async (req, res) => {
+    try {
+        // Check cache
+        if (trendingCache.songs && trendingCache.lastUpdated && 
+            (Date.now() - trendingCache.lastUpdated) < CACHE_DURATION) {
+            console.log('[TRENDING] Returning cached songs');
+            return res.json(trendingCache.songs);
+        }
+
+        console.log('[TRENDING] Fetching fresh song data from TikTok Creative Center...');
+        
+        const response = await fetch('https://ads.tiktok.com/creative_radar_api/v1/popular_trend/sound/list?page=1&limit=20&period=7&country_code=US&sort_by=popular', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json',
+                'Referer': 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/en'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Creative Center API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.code === 0 && data.data?.list) {
+            const songs = data.data.list.map((item, index) => ({
+                rank: index + 1,
+                title: item.sound_title || 'Unknown',
+                artist: item.author || 'Unknown Artist',
+                uses: formatNumber(item.publish_cnt),
+                trend: item.trend_type === 1 ? 'rising' : item.trend_type === 2 ? 'hot' : 'stable',
+                coverUrl: item.cover_url || null
+            }));
+
+            trendingCache.songs = { success: true, data: { songs }, source: 'tiktok_creative_center' };
+            
+            console.log(`[TRENDING] Successfully fetched ${songs.length} trending songs`);
+            return res.json(trendingCache.songs);
+        }
+
+        throw new Error('Invalid response format');
+    } catch (error) {
+        console.error('[TRENDING] Error fetching songs:', error.message);
+        
+        res.json({
+            success: true,
+            data: {
+                songs: [
+                    { rank: 1, title: 'Original Sound', artist: 'Trending Creator', uses: '1.2M', trend: 'hot' },
+                    { rank: 2, title: 'Viral Beat', artist: 'Music Producer', uses: '890K', trend: 'rising' },
+                    { rank: 3, title: 'Dance Track', artist: 'DJ Mix', uses: '750K', trend: 'hot' }
+                ]
+            },
+            source: 'fallback',
+            error: error.message
+        });
+    }
+});
+
+// Helper function to format numbers
+function formatNumber(num) {
+    if (!num) return '0';
+    if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+}
+
 // Debug endpoint to verify environment variables (without exposing secrets)
 app.get('/api/debug/env', (req, res) => {
     res.json({

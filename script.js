@@ -734,7 +734,7 @@ function updateBestPerforming(videos) {
     });
 }
 
-// Load trending data (works without authentication)
+// Load trending data (works without authentication - uses TikTok Creative Center)
 async function loadTrendingData() {
     if (!tiktokAPI) {
         console.log('TikTok API not initialized, using default trending data');
@@ -742,43 +742,66 @@ async function loadTrendingData() {
     }
 
     try {
-        console.log('📈 Fetching trending data...');
-        const trending = await tiktokAPI.getTrendingHashtags();
-        console.log('📈 Trending data received:', trending);
+        console.log('📈 Fetching trending data from Creative Center...');
         
-        if (trending.data?.hashtags) {
-            updateTrendingList(trending.data.hashtags);
+        // Fetch hashtags and songs in parallel
+        const [hashtagsResponse, songsResponse] = await Promise.all([
+            tiktokAPI.getTrendingHashtags(),
+            tiktokAPI.getTrendingSongs()
+        ]);
+        
+        console.log('📈 Trending hashtags received:', hashtagsResponse);
+        console.log('🎵 Trending songs received:', songsResponse);
+        
+        // Update hashtags
+        if (hashtagsResponse.data?.hashtags) {
+            updateTrendingList(hashtagsResponse.data.hashtags, hashtagsResponse.source);
+        }
+        
+        // Update sounds/songs
+        if (songsResponse.data?.songs) {
+            updateSoundsList(songsResponse.data.songs, songsResponse.source);
         }
     } catch (e) {
         console.log('Could not load trending:', e);
     }
 }
 
-function updateTrendingList(hashtags) {
+function updateTrendingList(hashtags, source = 'unknown') {
     const trendingList = document.getElementById('trending-list');
     if (!trendingList || !hashtags) return;
 
     trendingList.innerHTML = '';
     
-    hashtags.slice(0, 3).forEach((hashtag, index) => {
+    // Show source indicator
+    const sourceIndicator = document.createElement('div');
+    sourceIndicator.className = 'source-indicator';
+    sourceIndicator.innerHTML = source === 'tiktok_creative_center' 
+        ? '<span class="live-badge">🔴 LIVE</span> Real-time data from TikTok'
+        : '<span class="fallback-badge">📊</span> Cached trending data';
+    trendingList.appendChild(sourceIndicator);
+    
+    hashtags.slice(0, 5).forEach((hashtag, index) => {
         const trendItem = document.createElement('div');
         trendItem.className = 'trend-item';
-        if (index === 0) trendItem.classList.add('rising');
         
-        const badgeClass = index === 0 ? 'rising' : 'hot';
-        const badgeText = index === 0 ? 'Rising' : 'Hot';
+        // Determine badge based on trend type or position
+        const trendType = hashtag.trend || (index === 0 ? 'rising' : 'hot');
+        const badgeClass = trendType === 'rising' ? 'rising' : trendType === 'hot' ? 'hot' : 'stable';
+        const badgeText = trendType === 'rising' ? '🚀 Rising' : trendType === 'hot' ? '🔥 Hot' : '📊 Stable';
+        
+        if (trendType === 'rising') trendItem.classList.add('rising');
         
         trendItem.innerHTML = `
             <span class="trend-badge ${badgeClass}">${badgeText}</span>
-            <span class="trend-number">#${index + 1}</span>
+            <span class="trend-number">#${hashtag.rank || index + 1}</span>
             <div class="trend-content">
                 <h3>${hashtag.name || hashtag}</h3>
                 <p class="trend-meta">
-                    ${hashtag.engagement ? hashtag.engagement + ' growth' : 'Trending now'}
-                    ${hashtag.videos ? ' • ' + hashtag.videos + ' videos' : ''}
+                    ${hashtag.posts ? hashtag.posts + ' posts' : ''}
                     ${hashtag.views ? ' • ' + hashtag.views + ' views' : ''}
+                    ${hashtag.change && hashtag.change !== '0' ? ' • Rank ' + hashtag.change : ''}
                 </p>
-                ${hashtag.tags && hashtag.tags.length > 0 ? `<div class="trend-tags">${hashtag.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
             </div>
             <button class="btn-save-trend">Save for Later</button>
         `;
@@ -799,6 +822,41 @@ function updateTrendingList(hashtags) {
         }
         
         trendingList.appendChild(trendItem);
+    });
+}
+
+function updateSoundsList(songs, source = 'unknown') {
+    const soundsList = document.getElementById('sounds-list');
+    if (!soundsList || !songs) return;
+
+    soundsList.innerHTML = '';
+    
+    songs.slice(0, 5).forEach((song, index) => {
+        const soundItem = document.createElement('div');
+        soundItem.className = 'sound-item';
+        
+        const trendClass = song.trend === 'rising' ? 'rising' : song.trend === 'hot' ? 'hot' : '';
+        
+        soundItem.innerHTML = `
+            <div class="sound-info">
+                <strong>${song.title}</strong>
+                <p>${song.artist} • ${song.uses} uses</p>
+                ${song.trend === 'rising' ? '<span class="trend-indicator">🚀 Rising</span>' : ''}
+                ${song.trend === 'hot' ? '<span class="trend-indicator">🔥 Hot</span>' : ''}
+            </div>
+            <button class="btn-use-sound">Use</button>
+        `;
+        
+        // Add use sound handler
+        const useBtn = soundItem.querySelector('.btn-use-sound');
+        if (useBtn) {
+            useBtn.addEventListener('click', function() {
+                addIdeaToPlanner(`Use sound: ${song.title} by ${song.artist}`);
+                alert(`Added "${song.title}" to your content planner!`);
+            });
+        }
+        
+        soundsList.appendChild(soundItem);
     });
 }
 

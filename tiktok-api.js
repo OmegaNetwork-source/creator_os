@@ -534,67 +534,83 @@ class TikTokAPI {
         });
     }
 
-    // Get trending hashtags
-    // NOTE: TikTok Research API requires special approval and may not be available in Sandbox
-    // This will try the Research API first, then fall back to enhanced mock data
+    // Get trending hashtags from TikTok Creative Center (via our backend)
     async getTrendingHashtags() {
-        // Try to get real trending data if authenticated
-        if (this.accessToken) {
-            try {
-                console.log('🔍 Attempting to fetch trending hashtags from TikTok Research API...');
-                // TikTok Research API endpoint - may require special access/approval
-                const response = await this.apiRequest('research/hashtag/trending/', {
-                    method: 'GET'
-                });
-                
-                console.log('✅ TikTok Research API response received:', response);
-                
-                // Handle different possible response formats
-                if (response.data?.list || response.data?.hashtags || response.data?.hashtag_list) {
-                    const hashtags = response.data.list || response.data.hashtags || response.data.hashtag_list;
-                    
-                    // Helper to format numbers
-                    const formatNum = (num) => {
-                        if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B';
-                        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-                        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-                        return num.toString();
-                    };
-                    
-                    return {
-                        data: {
-                            hashtags: hashtags.map(item => ({
-                                name: item.hashtag_name || item.name || item.title || 'Trending',
-                                engagement: item.growth_rate ? `+${item.growth_rate}%` : null,
-                                videos: item.video_count ? formatNum(item.video_count) : null,
-                                views: item.view_count ? formatNum(item.view_count) : null,
-                                tags: item.related_hashtags || []
-                            }))
-                        }
-                    };
-                }
-                
-                return response;
-            } catch (e) {
-                console.warn('⚠️ TikTok Research API not available or failed:', e.message);
-                console.log('📝 Falling back to enhanced trending data');
+        try {
+            console.log('🔍 Fetching trending hashtags from Creative Center...');
+            const backendUrl = this.getBackendUrl();
+            
+            const response = await fetch(`${backendUrl}/api/trending/hashtags`);
+            const data = await response.json();
+            
+            console.log('📈 Trending hashtags response:', data);
+            
+            if (data.success && data.data?.hashtags) {
+                return {
+                    data: {
+                        hashtags: data.data.hashtags.map(h => ({
+                            name: h.name,
+                            posts: h.posts,
+                            views: h.views,
+                            trend: h.trend,
+                            rank: h.rank,
+                            change: h.change
+                        }))
+                    },
+                    source: data.source
+                };
             }
+            
+            throw new Error('Invalid trending response');
+        } catch (e) {
+            console.warn('⚠️ Could not fetch trending hashtags:', e.message);
+            // Return minimal fallback
+            return {
+                data: {
+                    hashtags: [
+                        { name: '#fyp', posts: '15M+', views: '2B+', trend: 'hot', rank: 1 },
+                        { name: '#viral', posts: '8M+', views: '1.5B+', trend: 'rising', rank: 2 },
+                        { name: '#trending', posts: '5M+', views: '1B+', trend: 'hot', rank: 3 }
+                    ]
+                },
+                source: 'fallback'
+            };
         }
-        
-        // Enhanced fallback data - more realistic trending hashtags
-        // In production, consider using third-party APIs like Apify, PrimeAPI, or ScraperX
-        // for real-time trending data if TikTok Research API isn't accessible
-        return {
-            data: {
-                hashtags: [
-                    { name: '#fyp', engagement: '+245%', videos: '15.2M', views: '2.8B' },
-                    { name: '#viral', engagement: '+189%', videos: '8.7M', views: '1.9B' },
-                    { name: '#trending', engagement: '+156%', videos: '6.3M', views: '1.2B' },
-                    { name: '#foryou', engagement: '+134%', videos: '5.1M', views: '980M' },
-                    { name: '#tiktok', engagement: '+112%', videos: '4.2M', views: '750M' }
-                ]
+    }
+
+    // Get trending songs/sounds from TikTok Creative Center (via our backend)
+    async getTrendingSongs() {
+        try {
+            console.log('🎵 Fetching trending songs from Creative Center...');
+            const backendUrl = this.getBackendUrl();
+            
+            const response = await fetch(`${backendUrl}/api/trending/songs`);
+            const data = await response.json();
+            
+            console.log('🎵 Trending songs response:', data);
+            
+            if (data.success && data.data?.songs) {
+                return {
+                    data: {
+                        songs: data.data.songs
+                    },
+                    source: data.source
+                };
             }
-        };
+            
+            throw new Error('Invalid trending response');
+        } catch (e) {
+            console.warn('⚠️ Could not fetch trending songs:', e.message);
+            return {
+                data: {
+                    songs: [
+                        { rank: 1, title: 'Trending Sound', artist: 'Creator', uses: '1M+', trend: 'hot' },
+                        { rank: 2, title: 'Viral Beat', artist: 'Producer', uses: '500K+', trend: 'rising' }
+                    ]
+                },
+                source: 'fallback'
+            };
+        }
     }
 }
 
