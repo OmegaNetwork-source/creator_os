@@ -17,23 +17,92 @@ This document tracks which TikTok API endpoints work with our current setup.
 - ❌ `video.insights` - Not authorized
 - ❌ `video.comment` - Not authorized
 
-## Test Results
+## Expected Test Results (Based on Current Scopes)
 
-### ✅ Working Endpoints
+**Current Setup:**
+- ✅ `user.info.basic` - Authorized
+- ❌ All other scopes - Not authorized
 
-*Results will be populated after running tests*
+### ✅ Should Work (user.info.basic scope)
+
+1. **Basic User Info**
+   - Endpoint: `/user/info/?fields=open_id,union_id,avatar_url,display_name`
+   - Status: ✅ Should work
+   - Returns: User's open_id, union_id, avatar_url, display_name
 
 ### 🔒 Needs Additional Scope
 
-*Results will be populated after running tests*
+1. **User Info with Profile**
+   - Endpoint: `/user/info/?fields=...,bio_description`
+   - Needs: `user.info.profile` scope
+   - Status: 🔒 Should return `scope_not_authorized`
+
+2. **User Info with Stats**
+   - Endpoint: `/user/info/?fields=...,follower_count,following_count,likes_count,video_count`
+   - Needs: `user.info.stats` scope
+   - Status: 🔒 Should return `scope_not_authorized`
+
+3. **User Videos List**
+   - Endpoint: `/video/list/?fields=id,title,video_description,cover_image_url,create_time`
+   - Needs: `video.list` scope
+   - Status: 🔒 Should return `scope_not_authorized`
+
+4. **Video Statistics**
+   - Endpoint: `/video/list/?fields=...,statistics`
+   - Needs: `video.list` scope
+   - Status: 🔒 Should return `scope_not_authorized`
+
+5. **Video Comments**
+   - Endpoint: `/video/comment/list/`
+   - Needs: `video.comment` scope (likely)
+   - Status: 🔒 Should return `scope_not_authorized` or `not_found`
+
+### ❌ Not Available / Requires Special Access
+
+1. **Trending Hashtags**
+   - Endpoint: `/research/hashtag/trending/`
+   - Needs: Research API product access (requires approval)
+   - Status: ❌ Likely returns 404 or 403
+
+2. **Trending Sounds**
+   - Endpoint: `/research/sound/trending/`
+   - Needs: Research API product access
+   - Status: ❌ Likely returns 404 or 403
+
+3. **Hashtag Search**
+   - Endpoint: `/research/hashtag/search/`
+   - Needs: Research API product access
+   - Status: ❌ Likely returns 404 or 403
+
+### 💥 May Fail for Other Reasons
+
+1. **Video Query** (with specific video IDs)
+   - Endpoint: `/video/query/?fields=id,title,...`
+   - Needs: `video.list` scope + valid video IDs
+   - Status: 💥 May fail due to scope or invalid video IDs
+
+2. **User Search**
+   - Endpoint: `/user/search/`
+   - Needs: Search API product (may not exist in Display API)
+   - Status: 💥 Likely returns 404
+
+## Test Results (After Running Script)
+
+### ✅ Working Endpoints
+
+*Run `node test-tiktok-apis.js <token>` to populate*
+
+### 🔒 Needs Additional Scope
+
+*Run `node test-tiktok-apis.js <token>` to populate*
 
 ### ❌ Not Available / Not Found
 
-*Results will be populated after running tests*
+*Run `node test-tiktok-apis.js <token>` to populate*
 
 ### 💥 Failed Tests
 
-*Results will be populated after running tests*
+*Run `node test-tiktok-apis.js <token>` to populate*
 
 ---
 
