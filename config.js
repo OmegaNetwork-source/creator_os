@@ -25,9 +25,9 @@ const TIKTOK_CONFIG = {
     // Update these in TikTok Developer Portal → Your App → Products → Enable the products you need
     // TEMPORARILY TESTING WITH ONLY user.info.basic TO ISOLATE SCOPE ISSUE
     scopes: [
-        'user.info.basic'
+        'user.info.basic',
         // 'video.list' // Temporarily disabled to test if user.info.basic works
-    ].join(',')
+    ].filter(s => s).join(',') // Filter out undefined/empty values
 };
 
 // Check if we're in sandbox mode
