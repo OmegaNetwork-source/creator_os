@@ -24,14 +24,16 @@ const TIKTOK_CONFIG = {
     // For sandbox apps, only basic scopes are available
     // Update these in TikTok Developer Portal → Your App → Products → Enable the products you need
     // user.info.basic: avatar_url, display_name, open_id, union_id (always requested)
-    // user.info.profile: bio_description, profile_web_link, profile_deep_link, is_verified (optional - requires re-auth)
-    // video.publish: Required for Content Posting API
+    // user.info.profile: bio_description, profile_web_link, profile_deep_link, is_verified (optional)
+    // video.list: Read user's public videos
+    // video.publish: Direct post content to TikTok (Content Posting API)
+    // video.upload: Upload content to user's inbox for review (Content Posting API)
     scopes: [
         'user.info.basic',
-        'video.list' // Required for /video/list/ endpoint
-        // 'user.info.profile' // Uncomment and re-auth to get bio support
-        // 'video.publish' // For posting videos (not needed for reading)
-    ].filter(s => s).join(',') // Filter out undefined/empty values
+        'video.list',
+        'video.publish' // For Content Posting API - Direct Post
+        // 'video.upload' // For Content Posting API - Upload to Inbox
+    ].filter(s => s).join(',')
 };
 
 // Check if we're in sandbox mode
