@@ -217,8 +217,15 @@ class TikTokAPI {
         };
 
         const requestBody = options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined;
+        const method = options.method || 'POST';
 
-        console.log('API Request:', { url, method: options.method || 'POST', endpoint });
+        console.log('🔗 API Request:', { 
+            url, 
+            method: method, 
+            endpoint: endpoint,
+            cleanEndpoint: cleanEndpoint,
+            hasBody: !!requestBody
+        });
 
         const response = await fetch(url, {
             method: options.method || 'POST',
