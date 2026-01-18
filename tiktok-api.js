@@ -267,9 +267,45 @@ class TikTokAPI {
         }
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
+            // Try to parse as JSON first
+            let error;
+            const contentType = response.headers.get('content-type') || '';
+            
+            if (contentType.includes('application/json')) {
+                try {
+                    error = await response.json();
+                } catch (jsonError) {
+                    error = { message: `Failed to parse error response: ${jsonError.message}` };
+                }
+            } else {
+                // Response is HTML or other format
+                const text = await response.text();
+                console.error('❌ API returned non-JSON error response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    contentType: contentType,
+                    preview: text.substring(0, 300)
+                });
+                
+                // Check for common error patterns in HTML
+                if (text.includes('scope_not_authorized') || text.includes('scope')) {
+                    throw new Error('Scope not authorized. Please log out and log back in to grant required permissions.');
+                } else if (text.includes('401') || text.includes('Unauthorized')) {
+                    throw new Error('Unauthorized. Token may be expired or invalid.');
+                } else {
+                    throw new Error(`API request failed: ${response.status} ${response.statusText}. Server returned ${contentType || 'HTML'} instead of JSON.`);
+                }
+            }
+            
             console.error('API Error:', error);
-            throw new Error(error.error?.message || error.message || `API request failed: ${response.status} ${response.statusText}`);
+            const errorMessage = error.error?.message || error.message || `API request failed: ${response.status} ${response.statusText}`;
+            
+            // Check for scope errors
+            if (error.error?.code === 'scope_not_authorized' || errorMessage.includes('scope')) {
+                throw new Error(`Scope not authorized: ${errorMessage}. Please log out and log back in to grant required permissions.`);
+            }
+            
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
