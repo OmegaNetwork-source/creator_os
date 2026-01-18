@@ -244,19 +244,6 @@ class TikTokAPI {
             body: requestBody
         });
         
-        // Check if response is actually JSON before parsing
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error('❌ Non-JSON response received:', {
-                status: response.status,
-                statusText: response.statusText,
-                contentType: contentType,
-                preview: text.substring(0, 200)
-            });
-            throw new Error(`Invalid response format: Expected JSON, got ${contentType || 'unknown'}. Status: ${response.status}`);
-        }
-
         console.log('API Response:', { status: response.status, statusText: response.statusText });
 
         if (response.status === 401) {
@@ -266,12 +253,15 @@ class TikTokAPI {
             return this.apiRequest(endpoint, options);
         }
 
+        // Check content type before parsing
+        const contentType = response.headers.get('content-type') || '';
+        const isJSON = contentType.includes('application/json');
+
         if (!response.ok) {
             // Try to parse as JSON first
             let error;
-            const contentType = response.headers.get('content-type') || '';
             
-            if (contentType.includes('application/json')) {
+            if (isJSON) {
                 try {
                     error = await response.json();
                 } catch (jsonError) {
@@ -306,6 +296,16 @@ class TikTokAPI {
             }
             
             throw new Error(errorMessage);
+        }
+
+        // Success - parse JSON response
+        if (!isJSON) {
+            const text = await response.text();
+            console.warn('⚠️ Success response is not JSON:', {
+                contentType: contentType,
+                preview: text.substring(0, 200)
+            });
+            throw new Error(`Invalid response format: Expected JSON, got ${contentType || 'unknown'}`);
         }
 
         const data = await response.json();
