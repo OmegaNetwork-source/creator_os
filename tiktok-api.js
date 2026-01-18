@@ -365,29 +365,55 @@ class TikTokAPI {
         });
     }
 
-    // Get trending hashtags (public data, doesn't require auth)
+    // Get trending hashtags
+    // NOTE: TikTok Research API requires special approval and may not be available in Sandbox
+    // This will try the Research API first, then fall back to enhanced mock data
     async getTrendingHashtags() {
         // Try to get real trending data if authenticated
         if (this.accessToken) {
             try {
-                return await this.apiRequest('research/hashtag/trending/', {
+                console.log('🔍 Attempting to fetch trending hashtags from TikTok Research API...');
+                // TikTok Research API endpoint - may require special access/approval
+                const response = await this.apiRequest('research/hashtag/trending/', {
                     method: 'GET'
                 });
+                
+                console.log('✅ TikTok Research API response received:', response);
+                
+                // Handle different possible response formats
+                if (response.data?.list || response.data?.hashtags || response.data?.hashtag_list) {
+                    const hashtags = response.data.list || response.data.hashtags || response.data.hashtag_list;
+                    return {
+                        data: {
+                            hashtags: hashtags.map(item => ({
+                                name: item.hashtag_name || item.name || item.title || 'Trending',
+                                engagement: item.growth_rate ? `+${item.growth_rate}%` : null,
+                                videos: item.video_count ? formatNumber(item.video_count) : null,
+                                views: item.view_count ? formatNumber(item.view_count) : null,
+                                tags: item.related_hashtags || []
+                            }))
+                        }
+                    };
+                }
+                
+                return response;
             } catch (e) {
-                console.log('Authenticated trending API failed, using public data:', e);
+                console.warn('⚠️ TikTok Research API not available or failed:', e.message);
+                console.log('📝 Falling back to enhanced trending data');
             }
         }
         
-        // For now, return curated trending data (could be enhanced with public API)
-        // In the future, this could use TikTok's public Research API or third-party services
+        // Enhanced fallback data - more realistic trending hashtags
+        // In production, consider using third-party APIs like Apify, PrimeAPI, or ScraperX
+        // for real-time trending data if TikTok Research API isn't accessible
         return {
             data: {
                 hashtags: [
-                    { name: 'Dance Challenges', engagement: '+125%', videos: '2.3M' },
-                    { name: 'Quick Tips', engagement: '+89%', videos: '1.8M' },
-                    { name: 'Behind the Scenes', engagement: '+67%', videos: '950K' },
-                    { name: 'Morning Motivation', engagement: '+45%', videos: '680K' },
-                    { name: 'Life Hacks', engagement: '+52%', videos: '1.2M' }
+                    { name: '#fyp', engagement: '+245%', videos: '15.2M', views: '2.8B' },
+                    { name: '#viral', engagement: '+189%', videos: '8.7M', views: '1.9B' },
+                    { name: '#trending', engagement: '+156%', videos: '6.3M', views: '1.2B' },
+                    { name: '#foryou', engagement: '+134%', videos: '5.1M', views: '980M' },
+                    { name: '#tiktok', engagement: '+112%', videos: '4.2M', views: '750M' }
                 ]
             }
         };

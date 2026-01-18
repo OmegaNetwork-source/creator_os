@@ -740,8 +740,12 @@ function updateTrendingList(hashtags) {
             <span class="trend-number">#${index + 1}</span>
             <div class="trend-content">
                 <h3>${hashtag.name || hashtag}</h3>
-                <p class="trend-meta">${hashtag.engagement || 'Trending now'} ${hashtag.videos ? '• ' + hashtag.videos + ' videos' : ''}</p>
-                ${hashtag.tags ? `<div class="trend-tags">${hashtag.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
+                <p class="trend-meta">
+                    ${hashtag.engagement ? hashtag.engagement + ' growth' : 'Trending now'}
+                    ${hashtag.videos ? ' • ' + hashtag.videos + ' videos' : ''}
+                    ${hashtag.views ? ' • ' + hashtag.views + ' views' : ''}
+                </p>
+                ${hashtag.tags && hashtag.tags.length > 0 ? `<div class="trend-tags">${hashtag.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
             </div>
             <button class="btn-save-trend">Save for Later</button>
         `;
