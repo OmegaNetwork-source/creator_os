@@ -1502,3 +1502,124 @@ body {
     background: var(--gray-dark);
     transform: scale(1.05);
 }
+
+/* QR Code Login Modal */
+.qr-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.qr-modal-content {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+}
+
+.qr-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--gray-medium);
+    padding-bottom: 1rem;
+}
+
+.qr-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.qr-modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--gray-dark);
+    line-height: 1;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.qr-modal-close:hover {
+    background: var(--gray-light);
+    color: var(--black);
+}
+
+.qr-modal-body {
+    text-align: center;
+}
+
+.qr-status {
+    padding: 2rem;
+}
+
+.qr-status p {
+    margin: 0;
+    color: var(--gray-dark);
+}
+
+#qr-code-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+#qr-code-image {
+    padding: 1rem;
+    background: var(--white);
+    border: 2px solid var(--gray-medium);
+    border-radius: var(--border-radius);
+}
+
+#qr-code-image canvas {
+    display: block;
+}
+
+.qr-instructions {
+    font-size: 0.9rem;
+    color: var(--gray-dark);
+    line-height: 1.6;
+    text-align: left;
+    padding: 1rem;
+    background: var(--gray-ultra-light);
+    border-radius: var(--border-radius);
+}
+
+.qr-status-text {
+    font-weight: 600;
+    color: var(--black);
+    margin: 1rem 0 0 0;
+}
+
+.qr-error {
+    padding: 1rem;
+    background: #f8d7da;
+    border: 2px solid #dc3545;
+    color: #721c24;
+    border-radius: var(--border-radius);
+    margin-top: 1rem;
+}
+
+.qr-error p {
+    margin: 0;
+}

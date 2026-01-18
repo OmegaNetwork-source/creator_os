@@ -420,10 +420,16 @@ function initTikTokIntegration() {
     console.log('🔧 Initializing TikTok integration...');
     
     const loginBtn = document.getElementById('tiktok-login-btn');
+    const qrLoginBtn = document.getElementById('tiktok-qr-login-btn');
     const logoutBtn = document.getElementById('tiktok-logout-btn');
     const refreshBtn = document.getElementById('refresh-data-btn');
 
-    console.log('Buttons found:', { loginBtn: !!loginBtn, logoutBtn: !!logoutBtn, refreshBtn: !!refreshBtn });
+    console.log('Buttons found:', { loginBtn: !!loginBtn, qrLoginBtn: !!qrLoginBtn, logoutBtn: !!logoutBtn, refreshBtn: !!refreshBtn });
+
+    if (qrLoginBtn) {
+        qrLoginBtn.addEventListener('click', handleQRCodeLogin);
+        console.log('✅ QR code login button event listener added');
+    }
 
     if (loginBtn) {
         // Add multiple event listeners to ensure it works
@@ -495,13 +501,15 @@ function checkAuthStatus() {
     console.log('Auth status:', isAuth ? '✅ Authenticated' : '❌ Not authenticated');
     
     const loginBtn = document.getElementById('tiktok-login-btn');
+    const qrLoginBtn = document.getElementById('tiktok-qr-login-btn');
     const logoutBtn = document.getElementById('tiktok-logout-btn');
     const userInfo = document.getElementById('user-info');
 
-    console.log('Button elements:', { loginBtn: !!loginBtn, logoutBtn: !!logoutBtn, userInfo: !!userInfo });
+    console.log('Button elements:', { loginBtn: !!loginBtn, qrLoginBtn: !!qrLoginBtn, logoutBtn: !!logoutBtn, userInfo: !!userInfo });
 
     if (isAuth) {
         if (loginBtn) loginBtn.style.display = 'none';
+        if (qrLoginBtn) qrLoginBtn.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'inline-block';
         if (userInfo) userInfo.style.display = 'block';
         console.log('✅ User is authenticated, showing logout button');
@@ -514,6 +522,13 @@ function checkAuthStatus() {
             loginBtn.style.visibility = 'visible';
             loginBtn.style.opacity = '1';
             console.log('✅ Showing Connect TikTok button');
+        }
+        if (qrLoginBtn) {
+            qrLoginBtn.style.display = 'inline-block';
+            qrLoginBtn.style.visibility = 'visible';
+            qrLoginBtn.style.opacity = '1';
+        }
+        if (loginBtn) {
             console.log('Button computed style:', window.getComputedStyle(loginBtn).display);
         } else {
             console.error('❌ Login button element not found in DOM!');
@@ -566,6 +581,213 @@ function handleTikTokLogin(e) {
         return false;
     }
 }
+
+// QR Code Login
+let qrPollingInterval = null;
+
+async function handleQRCodeLogin(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    console.log('📱 QR code login button clicked');
+
+    if (!tiktokAPI) {
+        console.error('❌ TikTok API not initialized');
+        alert('TikTok API not initialized. Please refresh the page.');
+        return false;
+    }
+
+    // Show modal
+    const modal = document.getElementById('qr-login-modal');
+    const statusEl = document.getElementById('qr-status');
+    const containerEl = document.getElementById('qr-code-container');
+    const imageEl = document.getElementById('qr-code-image');
+    const statusTextEl = document.getElementById('qr-status-text');
+    const errorEl = document.getElementById('qr-error');
+
+    modal.style.display = 'flex';
+    containerEl.style.display = 'none';
+    errorEl.style.display = 'none';
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<p>Generating QR code...</p>';
+
+    try {
+        // Get QR code
+        const qrData = await tiktokAPI.getQRCode();
+        console.log('✅ QR code received:', { hasUrl: !!qrData.scan_qrcode_url, hasToken: !!qrData.token });
+
+        // Generate QR code image
+        if (typeof QRCode !== 'undefined') {
+            QRCode.toCanvas(imageEl, qrData.scan_qrcode_url, {
+                width: 300,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            }, (err) => {
+                if (err) {
+                    console.error('Error generating QR code:', err);
+                    throw new Error('Failed to generate QR code image');
+                }
+            });
+        } else {
+            throw new Error('QRCode library not loaded');
+        }
+
+        // Show QR code
+        statusEl.style.display = 'none';
+        containerEl.style.display = 'block';
+        statusTextEl.textContent = 'Waiting for scan...';
+
+        // Start polling
+        startQRPolling(qrData.token);
+
+    } catch (error) {
+        console.error('❌ Error with QR code login:', error);
+        statusEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
+    }
+
+    return false;
+}
+
+function startQRPolling(token) {
+    // Clear existing interval
+    if (qrPollingInterval) {
+        clearInterval(qrPollingInterval);
+    }
+
+    const statusTextEl = document.getElementById('qr-status-text');
+    const errorEl = document.getElementById('qr-error');
+
+    // Poll every 2 seconds
+    qrPollingInterval = setInterval(async () => {
+        try {
+            const status = await tiktokAPI.checkQRCodeStatus(token);
+            console.log('📱 QR code status:', status.status);
+
+            if (status.status === 'new') {
+                statusTextEl.textContent = 'Waiting for scan...';
+            } else if (status.status === 'scanned') {
+                statusTextEl.textContent = '✅ QR code scanned! Please confirm on your phone...';
+            } else if (status.status === 'confirmed') {
+                // Clear polling
+                if (qrPollingInterval) {
+                    clearInterval(qrPollingInterval);
+                    qrPollingInterval = null;
+                }
+
+                statusTextEl.textContent = '✅ Authorized! Exchanging code for token...';
+
+                // Extract code from redirect_uri or use code field
+                let code = status.code;
+                if (!code && status.redirect_uri) {
+                    try {
+                        const url = new URL(status.redirect_uri);
+                        code = url.searchParams.get('code');
+                    } catch (e) {
+                        // If not a valid URL, try to extract from string
+                        const match = status.redirect_uri.match(/code=([^&]+)/);
+                        if (match) {
+                            code = match[1];
+                        }
+                    }
+                }
+
+                if (!code) {
+                    throw new Error('Authorization code not found in response');
+                }
+
+                // Exchange code for token
+                try {
+                    await tiktokAPI.exchangeCodeForToken(code);
+                    statusTextEl.textContent = '✅ Successfully connected!';
+
+                    // Close modal after 1 second
+                    setTimeout(() => {
+                        closeQRModal();
+                        // Refresh auth status
+                        checkAuthStatus();
+                    }, 1000);
+                } catch (tokenError) {
+                    console.error('Token exchange error:', tokenError);
+                    errorEl.style.display = 'block';
+                    errorEl.innerHTML = `<p><strong>Error exchanging code:</strong> ${tokenError.message}</p>`;
+                }
+            } else if (status.status === 'expired') {
+                // Clear polling
+                if (qrPollingInterval) {
+                    clearInterval(qrPollingInterval);
+                    qrPollingInterval = null;
+                }
+
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = '<p><strong>QR code expired.</strong> Please close and try again.</p>';
+                statusTextEl.textContent = '❌ QR code expired';
+            } else if (status.status === 'utilised') {
+                // Already used
+                if (qrPollingInterval) {
+                    clearInterval(qrPollingInterval);
+                    qrPollingInterval = null;
+                }
+            }
+        } catch (error) {
+            console.error('Error checking QR status:', error);
+            // Continue polling unless it's a fatal error
+            if (error.message && error.message.includes('expired')) {
+                if (qrPollingInterval) {
+                    clearInterval(qrPollingInterval);
+                    qrPollingInterval = null;
+                }
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
+            }
+        }
+    }, 2000); // Poll every 2 seconds
+}
+
+function closeQRModal() {
+    // Clear polling
+    if (qrPollingInterval) {
+        clearInterval(qrPollingInterval);
+        qrPollingInterval = null;
+    }
+
+    const modal = document.getElementById('qr-login-modal');
+    modal.style.display = 'none';
+
+    // Clear session storage
+    sessionStorage.removeItem('tiktok_qr_client_ticket');
+    sessionStorage.removeItem('tiktok_qr_token');
+}
+
+// Initialize modal close handlers
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('qr-login-modal');
+    const closeBtn = document.getElementById('qr-modal-close');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeQRModal);
+    }
+
+    // Close on background click
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeQRModal();
+            }
+        });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+            closeQRModal();
+        }
+    });
+});
 
 function handleTikTokLogout() {
     if (!tiktokAPI) return;

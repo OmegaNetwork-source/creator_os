@@ -538,6 +538,33 @@
         </div>
     </footer>
 
+    <!-- QR Code Login Modal -->
+    <div id="qr-login-modal" class="qr-modal" style="display: none;">
+        <div class="qr-modal-content">
+            <div class="qr-modal-header">
+                <h2>📱 Login with QR Code</h2>
+                <button class="qr-modal-close" id="qr-modal-close">&times;</button>
+            </div>
+            <div class="qr-modal-body">
+                <div id="qr-status" class="qr-status">
+                    <p>Generating QR code...</p>
+                </div>
+                <div id="qr-code-container" style="display: none;">
+                    <div id="qr-code-image"></div>
+                    <p class="qr-instructions">
+                        1. Open TikTok app on your phone<br>
+                        2. Tap the Profile icon<br>
+                        3. Tap the <strong>☰</strong> icon → <strong>Settings and privacy</strong> → <strong>QR code</strong><br>
+                        4. Scan this QR code to authorize
+                    </p>
+                    <p id="qr-status-text" class="qr-status-text">Waiting for scan...</p>
+                </div>
+                <div id="qr-error" class="qr-error" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="script.js?v=3"></script>
 </body>
 </html>
