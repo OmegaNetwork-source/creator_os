@@ -312,7 +312,10 @@ class TikTokAPI {
 
         // TikTok Display API: GET /v2/user/info/ with fields as query params
         const fields = ['open_id', 'union_id', 'avatar_url', 'display_name', 'username'].join(',');
-        const data = await this.apiRequest(`user/info/?fields=${fields}`, {
+        // Explicitly construct endpoint without leading slash
+        const endpoint = `user/info/?fields=${fields}`;
+        console.log('📞 getUserInfo - calling apiRequest with endpoint:', endpoint);
+        const data = await this.apiRequest(endpoint, {
             method: 'GET'
         });
 
