@@ -591,9 +591,23 @@ async function loadTikTokData() {
         console.log('User info received:', userInfo);
         
         if (userInfo.data?.user) {
-            const username = userInfo.data.user.display_name || userInfo.data.user.username || 'TikTok User';
+            const user = userInfo.data.user;
+            const username = user.display_name || 'TikTok User';
+            const avatarUrl = user.avatar_url;
+            
+            // Update username
             const usernameEl = document.getElementById('username');
             if (usernameEl) usernameEl.textContent = username;
+            
+            // Update avatar/profile picture
+            const avatarEl = document.getElementById('user-avatar');
+            if (avatarEl && avatarUrl) {
+                avatarEl.src = avatarUrl;
+                avatarEl.style.display = 'block';
+                avatarEl.alt = username + ' profile picture';
+            }
+            
+            console.log('✅ User info updated:', { username, hasAvatar: !!avatarUrl });
         }
 
         // Load user videos and calculate stats
