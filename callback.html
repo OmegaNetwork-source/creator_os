@@ -49,6 +49,8 @@
     <script>
         // Set backend URL for callback page
         window.CREATOR_OS_BACKEND_URL = 'https://creator-os-h4vg.onrender.com';
+        // Redirect URI for OAuth (must match what was used in authorization)
+        window.CREATOR_OS_REDIRECT_URI = 'https://creator-os-h4vg.onrender.com/callback.html';
         
         // Ensure status element is always visible
         const statusEl = document.getElementById('status');
