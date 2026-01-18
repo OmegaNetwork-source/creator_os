@@ -649,7 +649,15 @@ async function loadTikTokData() {
             }
         } catch (e) {
             console.error('Could not load videos:', e);
-            alert('Could not load videos: ' + e.message);
+            // Only show alert for user-actionable errors, not scope issues
+            if (e.message && e.message.includes('scope')) {
+                console.warn('⚠️ Video list requires video.list scope. Please log out and log back in to authorize it.');
+            } else if (e.message && e.message.includes('Invalid response format')) {
+                console.warn('⚠️ TikTok API returned HTML instead of JSON. This usually means the endpoint is not available or requires different scopes.');
+            } else {
+                // Only show alert for unexpected errors
+                console.warn('⚠️ Video loading failed:', e.message);
+            }
         }
 
         // Load trending data (also updates when authenticated for personalized trends)

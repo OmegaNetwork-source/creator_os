@@ -243,6 +243,19 @@ class TikTokAPI {
             },
             body: requestBody
         });
+        
+        // Check if response is actually JSON before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('❌ Non-JSON response received:', {
+                status: response.status,
+                statusText: response.statusText,
+                contentType: contentType,
+                preview: text.substring(0, 200)
+            });
+            throw new Error(`Invalid response format: Expected JSON, got ${contentType || 'unknown'}. Status: ${response.status}`);
+        }
 
         console.log('API Response:', { status: response.status, statusText: response.statusText });
 
