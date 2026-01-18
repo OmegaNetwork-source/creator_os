@@ -50,6 +50,8 @@ async function testEndpoint(name, endpoint, method = 'GET', body = null) {
     
     try {
         const startTime = Date.now();
+        console.log(`🌐 Request URL: ${url}`);
+        
         const response = await fetch(url, options);
         const responseTime = Date.now() - startTime;
         
@@ -57,10 +59,23 @@ async function testEndpoint(name, endpoint, method = 'GET', body = null) {
         const contentType = response.headers.get('content-type');
         
         if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                const text = await response.text();
+                console.log(`⚠️  JSON parse error. Response:`, text.substring(0, 500));
+                results.failed.push({
+                    name,
+                    endpoint,
+                    status: response.status,
+                    error: 'JSON parse error',
+                    response: text.substring(0, 200)
+                });
+                return;
+            }
         } else {
             const text = await response.text();
-            console.log(`⚠️  Non-JSON response (${contentType}):`, text.substring(0, 200));
+            console.log(`⚠️  Non-JSON response (${contentType || 'unknown'}):`, text.substring(0, 500));
             results.failed.push({
                 name,
                 endpoint,
@@ -147,11 +162,37 @@ async function testEndpoint(name, endpoint, method = 'GET', body = null) {
     }
 }
 
+// Test backend connectivity first
+async function testBackendConnection() {
+    console.log('\n🔍 Testing backend connectivity...');
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/health`);
+        if (response.ok) {
+            console.log('✅ Backend is reachable');
+            return true;
+        } else {
+            console.log(`⚠️  Backend returned status: ${response.status}`);
+            return false;
+        }
+    } catch (error) {
+        console.error(`❌ Cannot reach backend: ${error.message}`);
+        console.error(`   Make sure ${BACKEND_URL} is accessible`);
+        return false;
+    }
+}
+
 // Main test function
 async function runTests() {
     console.log('\n🚀 Starting TikTok API Endpoint Tests');
     console.log(`🌐 Backend URL: ${BACKEND_URL}`);
     console.log(`🔑 Access Token: ${ACCESS_TOKEN.substring(0, 20)}...`);
+    
+    // Test backend connection first
+    const backendOk = await testBackendConnection();
+    if (!backendOk) {
+        console.error('\n❌ Backend is not reachable. Cannot run tests.');
+        process.exit(1);
+    }
     
     // ==================== USER INFO ====================
     console.log('\n\n📋 ========== USER INFO ENDPOINTS ==========');
