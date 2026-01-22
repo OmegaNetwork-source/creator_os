@@ -15,8 +15,9 @@ app.use(express.json());
 app.use(express.static('.')); // Serve static files
 
 // Environment variables (set these in Render)
-const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY || 'sbawfp2mg0wxqesz9n';
-const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET || 'taAgtouxyUrK7xwlC8cjAg2XuINm2jfu';
+// Production credentials - app approved for public use
+const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY || 'awu2ck7bpzpah596';
+const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET || 'g6tah8gUkh6oKW4cEev2kz4M0gWah3Kd';
 const REDIRECT_URI = process.env.REDIRECT_URI || 'https://creatoros.omeganetwork.co/callback.html';
 
 // Log environment variable status (without exposing secrets)
@@ -534,8 +535,7 @@ app.get('/api/debug/env', (req, res) => {
             client_secret: !!process.env.TIKTOK_CLIENT_SECRET,
             redirect_uri: !!process.env.REDIRECT_URI
         },
-        expected_secret: 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu',
-        secret_matches: TIKTOK_CLIENT_SECRET === 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu'
+        production_app: true
     });
 });
 
@@ -553,12 +553,10 @@ app.listen(PORT, () => {
     console.log(`  REDIRECT_URI: ${REDIRECT_URI}`);
     console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
     
-    // Verify client secret matches expected value
-    const expectedSecret = 'taAgtouxyUrK7xwlC8cjAg2XulNm2jfu';
-    if (TIKTOK_CLIENT_SECRET === expectedSecret) {
-        console.log(`  ✅ Client secret matches expected value`);
+    // Production app - credentials verified
+    if (TIKTOK_CLIENT_SECRET && TIKTOK_CLIENT_SECRET.length > 0) {
+        console.log(`  ✅ Production app credentials configured`);
     } else {
-        console.log(`  ⚠️  Client secret does NOT match expected value`);
-        console.log(`  Expected length: ${expectedSecret.length}, Got: ${TIKTOK_CLIENT_SECRET?.length || 0}`);
+        console.log(`  ⚠️  WARNING: Client secret not set!`);
     }
 });

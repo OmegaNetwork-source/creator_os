@@ -40,6 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Load saved data
         loadSavedIdeas();
         loadSavedTrends();
+        
+        // Load trending data (doesn't require authentication)
+        loadTrendingData();
+        
         console.log('✅ All features initialized');
     } catch (e) {
         console.error('❌ Initialization error:', e);
@@ -398,11 +402,19 @@ function initEngagementManagement() {
     // Comment actions
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-reply')) {
-            const commentText = e.target.closest('.comment-item').querySelector('.comment-text').textContent;
+            const commentItem = e.target.closest('.comment-item');
+            const commentId = commentItem.dataset.commentId;
+            const videoId = commentItem.dataset.videoId;
             const reply = prompt('Reply:', '');
-            if (reply) {
-                alert('Reply sent! (In production, this would send via TikTok API)');
-                e.target.closest('.comment-item').classList.remove('unread');
+            if (reply && commentId && videoId && tiktokAPI) {
+                try {
+                    await tiktokAPI.replyToComment(videoId, commentId, reply);
+                    alert('Reply sent!');
+                    commentItem.classList.remove('unread');
+                } catch (error) {
+                    console.error('Error replying to comment:', error);
+                    alert('Error sending reply: ' + error.message);
+                }
             }
         }
         if (e.target.classList.contains('btn-like')) {
@@ -820,10 +832,20 @@ async function loadTikTokData() {
             const username = user.display_name || 'TikTok User';
             const avatarUrl = user.avatar_url;
             const bio = user.bio_description || user.bio || '';
+            const followers = user.follower_count;
+            const following = user.following_count;
+            const likes = user.likes_count;
+            const videoCount = user.video_count;
             
             // Update username
             const usernameEl = document.getElementById('username');
-            if (usernameEl) usernameEl.textContent = username;
+            if (usernameEl) {
+                let usernameText = username;
+                if (followers !== undefined) {
+                    usernameText += ` • ${formatNumber(followers)} followers`;
+                }
+                usernameEl.textContent = usernameText;
+            }
             
             // Update avatar/profile picture
             const avatarEl = document.getElementById('user-avatar');
@@ -879,6 +901,27 @@ async function loadTikTokData() {
             } else {
                 // Only show alert for unexpected errors
                 console.warn('⚠️ Video loading failed:', e.message);
+            }
+        }
+
+        // Load comments from user's videos
+        try {
+            if (videos.data?.videos && videos.data.videos.length > 0) {
+                // Load comments from the most recent video
+                const latestVideo = videos.data.videos[0];
+                if (latestVideo.id) {
+                    console.log('Loading comments for video:', latestVideo.id);
+                    const comments = await tiktokAPI.getVideoComments(latestVideo.id, 20);
+                    if (comments.data?.comments) {
+                        updateCommentsList(comments.data.comments, latestVideo.id);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Could not load comments:', e.message);
+            // Comments may require video.comment scope - not critical
+            if (e.message && e.message.includes('scope')) {
+                console.warn('⚠️ Comments require video.comment scope. Please log out and log back in to authorize it.');
             }
         }
 
@@ -975,9 +1018,18 @@ async function loadTrendingData() {
         console.log('📈 Trending hashtags received:', hashtagsResponse);
         console.log('🎵 Trending songs received:', songsResponse);
         
-        // Update hashtags
-        if (hashtagsResponse.data?.hashtags) {
+        // Update hashtags - always call to replace static HTML content
+        if (hashtagsResponse.data?.hashtags && hashtagsResponse.data.hashtags.length > 0) {
             updateTrendingList(hashtagsResponse.data.hashtags, hashtagsResponse.source);
+        } else {
+            console.warn('⚠️ No hashtags in response, using fallback');
+            // Show fallback data if response is empty or invalid
+            const fallbackHashtags = [
+                { name: '#fyp', posts: '15M+', views: '2B+', trend: 'hot', rank: 1 },
+                { name: '#viral', posts: '8M+', views: '1.5B+', trend: 'rising', rank: 2 },
+                { name: '#trending', posts: '5M+', views: '1B+', trend: 'hot', rank: 3 }
+            ];
+            updateTrendingList(fallbackHashtags, 'fallback');
         }
         
         // Update sounds/songs
@@ -985,15 +1037,39 @@ async function loadTrendingData() {
             updateSoundsList(songsResponse.data.songs, songsResponse.source);
         }
     } catch (e) {
-        console.log('Could not load trending:', e);
+        console.error('❌ Could not load trending data:', e);
+        // Always show fallback data if API fails to replace static HTML
+        const fallbackHashtags = [
+            { name: '#fyp', posts: '15M+', views: '2B+', trend: 'hot', rank: 1 },
+            { name: '#viral', posts: '8M+', views: '1.5B+', trend: 'rising', rank: 2 },
+            { name: '#trending', posts: '5M+', views: '1B+', trend: 'hot', rank: 3 }
+        ];
+        updateTrendingList(fallbackHashtags, 'fallback');
     }
 }
 
 function updateTrendingList(hashtags, source = 'unknown') {
     const trendingList = document.getElementById('trending-list');
-    if (!trendingList || !hashtags) return;
-
+    if (!trendingList) {
+        console.error('❌ Trending list element not found');
+        return;
+    }
+    
+    // Always clear the static HTML content first
     trendingList.innerHTML = '';
+    
+    // If no valid hashtags, show fallback
+    if (!hashtags || !Array.isArray(hashtags) || hashtags.length === 0) {
+        console.warn('⚠️ No hashtags to display, using fallback:', { hashtags, source });
+        hashtags = [
+            { name: '#fyp', posts: '15M+', views: '2B+', trend: 'hot', rank: 1 },
+            { name: '#viral', posts: '8M+', views: '1.5B+', trend: 'rising', rank: 2 },
+            { name: '#trending', posts: '5M+', views: '1B+', trend: 'hot', rank: 3 }
+        ];
+        source = 'fallback';
+    }
+
+    console.log('📊 Updating trending list:', { count: hashtags.length, source });
     
     // Show source indicator
     const sourceIndicator = document.createElement('div');
@@ -1014,15 +1090,22 @@ function updateTrendingList(hashtags, source = 'unknown') {
         
         if (trendType === 'rising') trendItem.classList.add('rising');
         
+        // Ensure hashtag name has # prefix
+        let hashtagName = hashtag.name || hashtag;
+        if (typeof hashtagName === 'string' && !hashtagName.startsWith('#')) {
+            hashtagName = '#' + hashtagName;
+        }
+        
         trendItem.innerHTML = `
             <span class="trend-badge ${badgeClass}">${badgeText}</span>
             <span class="trend-number">#${hashtag.rank || index + 1}</span>
             <div class="trend-content">
-                <h3>${hashtag.name || hashtag}</h3>
+                <h3>${hashtagName}</h3>
                 <p class="trend-meta">
                     ${hashtag.posts ? hashtag.posts + ' posts' : ''}
                     ${hashtag.views ? ' • ' + hashtag.views + ' views' : ''}
-                    ${hashtag.change && hashtag.change !== '0' ? ' • Rank ' + hashtag.change : ''}
+                    ${hashtag.engagement ? hashtag.engagement + ' engagement' : ''}
+                    ${hashtag.change && hashtag.change !== '0' && hashtag.change !== '0%' ? ' • ' + hashtag.change : ''}
                 </p>
             </div>
             <button class="btn-save-trend">Save for Later</button>
@@ -1080,6 +1163,98 @@ function updateSoundsList(songs, source = 'unknown') {
         
         soundsList.appendChild(soundItem);
     });
+}
+
+function updateCommentsList(comments, videoId = null) {
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) {
+        console.warn('Comments list element not found');
+        return;
+    }
+    
+    if (!comments || !Array.isArray(comments) || comments.length === 0) {
+        commentsList.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--gray-dark);">No comments found</p>';
+        return;
+    }
+
+    console.log('📝 Updating comments list:', { count: comments.length });
+
+    commentsList.innerHTML = '';
+    
+    comments.forEach((comment, index) => {
+        const commentItem = document.createElement('div');
+        commentItem.className = 'comment-item';
+        if (index < 5) {
+            commentItem.classList.add('unread'); // Mark first 5 as unread
+        }
+        
+        // Store comment ID and video ID for reply functionality
+        if (comment.comment_id) {
+            commentItem.dataset.commentId = comment.comment_id;
+        }
+        if (videoId) {
+            commentItem.dataset.videoId = videoId;
+        }
+        
+        // Format time
+        let timeAgo = 'Recently';
+        if (comment.create_time) {
+            const commentDate = new Date(comment.create_time * 1000);
+            const now = new Date();
+            const diffMs = now - commentDate;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) timeAgo = 'Just now';
+            else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
+            else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
+            else if (diffDays < 7) timeAgo = `${diffDays}d ago`;
+            else timeAgo = commentDate.toLocaleDateString();
+        }
+        
+        const username = comment.user?.display_name || comment.user?.username || '@user';
+        const avatar = comment.user?.avatar_url || '';
+        const text = comment.text || comment.comment_text || '';
+        const likes = comment.like_count || 0;
+        
+        commentItem.innerHTML = `
+            <div class="comment-avatar">${avatar ? `<img src="${avatar}" alt="${username}" style="width: 40px; height: 40px; border-radius: 50%;">` : '👤'}</div>
+            <div class="comment-content">
+                <div class="comment-header">
+                    <strong>${username}</strong>
+                    <span class="comment-time">${timeAgo}</span>
+                    ${index < 3 ? '<span class="comment-badge new">New</span>' : ''}
+                </div>
+                <p class="comment-text">${text}</p>
+                ${likes > 0 ? `<span class="comment-likes">👍 ${formatNumber(likes)}</span>` : ''}
+                <div class="comment-actions">
+                    <button class="btn-reply">Reply</button>
+                    <button class="btn-like">👍 Like</button>
+                    <button class="btn-hide">Hide</button>
+                </div>
+            </div>
+        `;
+        
+        commentsList.appendChild(commentItem);
+    });
+    
+    // Update engagement stats
+    updateEngagementStats(comments);
+}
+
+function updateEngagementStats(comments) {
+    const unreadCount = comments.filter((c, i) => i < 5).length;
+    const needsReply = comments.filter(c => !c.replied).length;
+    const responseRate = comments.length > 0 ? Math.round((comments.filter(c => c.replied).length / comments.length) * 100) : 0;
+    
+    const unreadEl = document.querySelector('.engagement-stat strong');
+    const needsReplyEl = document.querySelectorAll('.engagement-stat strong')[1];
+    const responseRateEl = document.querySelectorAll('.engagement-stat strong')[2];
+    
+    if (unreadEl) unreadEl.textContent = unreadCount;
+    if (needsReplyEl) needsReplyEl.textContent = needsReply;
+    if (responseRateEl) responseRateEl.textContent = responseRate + '%';
 }
 
 function formatNumber(num) {

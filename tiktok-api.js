@@ -365,9 +365,9 @@ class TikTokAPI {
         // TikTok Display API: GET /v2/user/info/ with fields as query params
         // user.info.basic scope supports: open_id, union_id, avatar_url, display_name
         // user.info.profile scope supports: bio_description, profile_web_link, profile_deep_link, is_verified
-        // NOTE: Only request fields that match currently authorized scopes
-        // If user.info.profile wasn't authorized, requesting bio_description will cause 401 error
-        const fields = ['open_id', 'union_id', 'avatar_url', 'display_name'].join(',');
+        // user.info.stats scope supports: follower_count, following_count, likes_count, video_count
+        // Production app - all scopes enabled
+        const fields = ['open_id', 'union_id', 'avatar_url', 'display_name', 'bio_description', 'profile_web_link', 'profile_deep_link', 'is_verified', 'follower_count', 'following_count', 'likes_count', 'video_count'].join(',');
         // Explicitly construct endpoint without leading slash
         const endpoint = `user/info/?fields=${fields}`;
         console.log('📞 getUserInfo - calling apiRequest with endpoint:', endpoint);
@@ -398,7 +398,7 @@ class TikTokAPI {
     async getVideoInsights(videoId) {
         return this.apiRequest('video/query/', {
             method: 'POST',
-            body: JSON.stringify({
+            body: {
                 filters: {
                     video_ids: [videoId]
                 },
@@ -412,7 +412,44 @@ class TikTokAPI {
                     'video_view_rate',
                     'video_click_rate'
                 ]
-            })
+            }
+        });
+    }
+
+    // Get video comments
+    async getVideoComments(videoId, maxCount = 20, cursor = null) {
+        const body = {
+            video_id: videoId,
+            max_count: maxCount
+        };
+        
+        if (cursor) {
+            body.cursor = cursor;
+        }
+
+        return this.apiRequest('video/comment/list/', {
+            method: 'POST',
+            body: body
+        });
+    }
+
+    // Reply to a comment
+    async replyToComment(videoId, commentId, text) {
+        return this.apiRequest('video/comment/reply/', {
+            method: 'POST',
+            body: {
+                video_id: videoId,
+                comment_id: commentId,
+                text: text
+            }
+        });
+    }
+
+    // Get user statistics (follower count, etc.)
+    async getUserStats() {
+        const fields = ['open_id', 'display_name', 'follower_count', 'following_count', 'likes_count', 'video_count'].join(',');
+        return this.apiRequest(`user/info/?fields=${fields}`, {
+            method: 'GET'
         });
     }
 
@@ -539,8 +576,19 @@ class TikTokAPI {
         try {
             console.log('🔍 Fetching trending hashtags from Creative Center...');
             const backendUrl = this.getBackendUrl();
+            console.log('🌐 Backend URL for trending:', backendUrl);
             
-            const response = await fetch(`${backendUrl}/api/trending/hashtags`);
+            const response = await fetch(`${backendUrl}/api/trending/hashtags`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+            }
+            
             const data = await response.json();
             
             console.log('📈 Trending hashtags response:', data);
@@ -563,7 +611,8 @@ class TikTokAPI {
             
             throw new Error('Invalid trending response');
         } catch (e) {
-            console.warn('⚠️ Could not fetch trending hashtags:', e.message);
+            console.error('❌ Could not fetch trending hashtags:', e.message);
+            console.error('❌ Error details:', e);
             // Return minimal fallback
             return {
                 data: {

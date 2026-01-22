@@ -4,40 +4,43 @@
 
 const TIKTOK_CONFIG = {
     // Client key (public, safe to expose)
-    client_key: 'sbawfp2mg0wxqesz9n',
+    client_key: 'awu2ck7bpzpah596',
     // NOTE: client_secret is now handled by backend server only!
     
     // TikTok API endpoints
-    // For sandbox apps, use the same endpoints but ensure proper configuration
     auth_url: 'https://www.tiktok.com/v2/auth/authorize/',
     api_base: 'https://open.tiktokapis.com/v2/',
     
     // Redirect URI (must match your TikTok app settings)
-    // If testing on Render, use Render URL. For production, use your main domain.
     redirect_uri: window.CREATOR_OS_REDIRECT_URI || 'https://creator-os-h4vg.onrender.com/callback.html',
     
     // Backend API URL (set this to your Render backend URL)
     // If not set, will use same origin
     backend_url: window.CREATOR_OS_BACKEND_URL || window.location.origin,
     
-    // Scopes for TikTok API
-    // For sandbox apps, only basic scopes are available
-    // Update these in TikTok Developer Portal → Your App → Products → Enable the products you need
-    // user.info.basic: avatar_url, display_name, open_id, union_id (always requested)
-    // user.info.profile: bio_description, profile_web_link, profile_deep_link, is_verified (optional)
-    // video.list: Read user's public videos
+    // Scopes for TikTok API - Production app with full access
+    // user.info.basic: avatar_url, display_name, open_id, union_id
+    // user.info.profile: bio_description, profile_web_link, profile_deep_link, is_verified
+    // user.info.stats: follower_count, following_count, likes_count, video_count
+    // video.list: Read user's public videos with statistics
+    // video.insights.read: Detailed video analytics and insights
+    // video.comment: Read and manage video comments
     // video.publish: Direct post content to TikTok (Content Posting API)
     // video.upload: Upload content to user's inbox for review (Content Posting API)
     scopes: [
         'user.info.basic',
+        'user.info.profile',
+        'user.info.stats',
         'video.list',
-        'video.publish' // For Content Posting API - Direct Post
-        // 'video.upload' // For Content Posting API - Upload to Inbox
+        'video.insights.read',
+        'video.comment',
+        'video.publish', // For Content Posting API - Direct Post
+        'video.upload' // For Content Posting API - Upload to Inbox
     ].filter(s => s).join(',')
 };
 
-// Check if we're in sandbox mode
-const IS_SANDBOX = true;
+// Production mode - app approved for public use
+const IS_SANDBOX = false;
 
 // Storage keys
 const STORAGE_KEYS = {
